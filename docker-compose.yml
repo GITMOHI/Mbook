@@ -1,0 +1,39 @@
+# version: '3'
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+ 
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app  # Mounts the local backend directory to the container
+      - /app/node_modules  # Prevents overwriting node_modules in the container
+    command: npm run dev
+    depends_on:
+      - mongo
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_HOST=0.0.0.0 
+    volumes:
+      - ./frontend:/app  # Mounts the local frontend directory to the container
+      - /app/node_modules  # Prevents overwriting node_modules in the container
+    stdin_open: true
+    tty: true
+    command: npm run dev
+    depends_on:
+      - backend
+
+
+volumes:
+  mongo-data:

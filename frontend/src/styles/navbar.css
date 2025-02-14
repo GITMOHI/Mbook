@@ -1,0 +1,31 @@
+/* Drawer Overlay - Hazy Effect */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.2); /* Slightly dark background */
+    backdrop-filter: blur(5px); /* Hazy blur effect */
+    z-index: 10; /* Ensures it’s above the content */
+    pointer-events: none; /* Prevents interaction with the background */
+  }
+  
+  /* Search Overlay - Hazy Effect */
+  .search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.2); /* Slightly dark background */
+    backdrop-filter: blur(3px); /* Hazy blur effect */
+    z-index: 10; /* Ensures it’s above the content */
+    pointer-events: none; /* Prevents interaction with the background */
+  }
+  
+  /* Content that gets hazy when drawer/search is open */
+  .content {
+    opacity: 0.7; /* Slightly reduced opacity when the drawer or search is open */
+  }
+  
