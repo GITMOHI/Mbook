@@ -1,19 +1,13 @@
-import React, { useEffect } from 'react';
+
 import { Outlet } from 'react-router';
 import Navbar from '../components/Navbar';
 import { FaUser, FaUsers, FaStore, FaTv, FaClock, FaBookmark, FaFlag, FaCalendarAlt } from 'react-icons/fa';
-import { useDispatch } from 'react-redux';
-import { checkUserPersistence, isLoggedIn } from '../services/Auth/AuthSlice';
+
 // import { toast, ToastContainer } from 'react-toastify';
 
 const Layout = () => {
       
-    //  const dispatch = useDispatch();
-    //   useEffect(() => {
-    //       console.log("called");
-    //     //   dispatch(checkUserPersistence()); // Run check on page load
-    //     dispatch(isLoggedIn());
-    //   }, [dispatch]);
+
 
 
     return (
@@ -26,7 +20,7 @@ const Layout = () => {
             {/* Main Content Section */}
             <div className="flex flex-1 bg-gray-200">
                 {/* Left Sidebar (Visible only on Desktop) */}
-                <div className="w-1/4 bg-white p-4 overflow-y-auto hidden lg:block">
+                <div className="w-2/6 bg-white p-4 overflow-y-auto hidden lg:block">
                     <div className="mb-4">
                         <a href="/profile" className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded">
                             <FaUser className="text-blue-600" />
@@ -75,8 +69,8 @@ const Layout = () => {
                 </div>
 
                 {/* Right Sidebar (Visible only on Desktop) */}
-                <div className="w-1/4 bg-white p-4 overflow-y-auto hidden lg:block">
-                    <div className="mb-4">
+                <div className="w-2/6 bg-white p-4 pl-20 overflow-y-auto hidden lg:block">
+                    <div className=" mb-4">
                         <h2 className="font-semibold text-lg">Contacts</h2>
                         {/* List of contacts */}
                         <ul className="space-y-2">
@@ -122,7 +116,7 @@ const Layout = () => {
                                 <span>Group Chat 1</span>
                             </a>
                             {/* Add more group conversations as needed */}
-                        </div>
+                     </div>
                     </div>
                 </div>
             </div>
