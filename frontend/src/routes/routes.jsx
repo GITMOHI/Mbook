@@ -9,6 +9,7 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import { selectUser } from "../services/Auth/AuthSlice";
 import { useSelector } from "react-redux";
 import PublicRoute from "../components/PublicRoute";
+import ProfilePage from "../pages/ProfilePage";
 
 
 const routes = createBrowserRouter([
@@ -22,6 +23,7 @@ const routes = createBrowserRouter([
     children: [
       { path: "", element: <HomePage /> },
       { path: "videos", element: <VideoPage /> },
+      { path:"profile", element: <ProfilePage />}
     ],
   },
   {

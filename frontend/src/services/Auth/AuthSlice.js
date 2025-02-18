@@ -87,6 +87,99 @@ export const logoutUserAsync = createAsyncThunk("auth/logout", async (_, { dispa
     console.error("Logout failed:", error);
   }
 });
+
+
+
+
+
+
+
+
+// Async thunk to update user details
+export const updateProfileDetails = createAsyncThunk(
+  'profile/updateDetails',
+  async ({ userId, details }, { rejectWithValue,getState }) => {
+    try {
+      const token = getState().auth.token; // Assuming token is stored in Redux state
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      const response = await axios.patch(
+        `${API_URL}/api/users/${userId}/details`, 
+        details,
+        config
+      );
+      return response.data; 
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+
+
+
+// // Async thunk to update user details
+// export const updateProfilePicture = createAsyncThunk(
+//   'profile/updateProfilePicture',
+//   async ({ userId, profilePicture }, { rejectWithValue }) => {
+//     try {
+
+//       console.log('Updating profile picture',profilePicture)
+//       const response = await axios.post(
+//         `${API_URL}/api/users/${userId}/setProfilePic`, 
+//         {profilePicture}
+//       );
+//       console.log(response.data);
+//       return response.data; 
+//     } catch (error) {
+//       return rejectWithValue(error.response.data);
+//     }
+//   }
+// );
+
+
+export const updateProfilePicture = createAsyncThunk(
+  "profile/updateProfilePicture",
+  async ({ userId, profilePicture }, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token; // Assuming token is stored in Redux state
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      console.log("Updating profile picture", profilePicture);
+
+      const response = await axios.post(
+        `${API_URL}/api/users/${userId}/setProfilePic`,
+        { profilePicture },
+        config // Pass config for authorization
+      );
+
+      console.log(response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
+
+
+
+
+
+
+
+
+
+
 // Create the slice
 const authSlice = createSlice({
   name: 'auth',
@@ -129,15 +222,47 @@ const authSlice = createSlice({
       .addCase(checkUserPersistence.fulfilled, (state, action) => {
         console.log(action.payload)
         state.user = action.payload;
+        // state.user = action.payload;
         const token = localStorage.getItem("accessToken"); // Get latest token
         state.token = token;
-        console.log(state.user);
+        console.log(state.user.profilePicture);
     })
     .addCase(checkUserPersistence.rejected, (state) => {
         state.user = null;
         state.token = null;
         localStorage.removeItem("accessToken");
-    });
+    })
+      
+    .addCase(updateProfileDetails.pending, (state) => {
+       state.status = 'loading';
+    })
+    
+    .addCase(updateProfileDetails.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user.details = action.payload;
+        state.error = null;
+     })
+    
+    .addCase(updateProfileDetails.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload; 
+     })
+    .addCase(updateProfilePicture.pending, (state) => {
+       state.status = 'loading';
+    })
+    
+    .addCase(updateProfilePicture.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        console.log("payload=",action.payload);
+        state.user.profilePicture = action.payload.profilePicture;
+        console.log("set to state",state.user.profilePicture);
+        state.error = null;
+     })
+    
+    .addCase(updateProfilePicture.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload; 
+     });
       
   },
 });
