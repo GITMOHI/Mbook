@@ -18,6 +18,13 @@ const UserSchema = new mongoose.Schema({
   },
   role: { type: String, default: "user" },
   isBanned: { type: Boolean, default: false }, // Soft delete field
+
+  profilePosts: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+
+  // News Feed (Posts from the user + friends)
+  newsFeed: [{ type: mongoose.Schema.Types.ObjectId, ref: "Post" }],
+
+
   createdAt: { type: Date, default: Date.now },
   refreshToken: { type: String, default: "" }  
 });

@@ -172,6 +172,47 @@ export const updateProfilePicture = createAsyncThunk(
 );
 
 
+export const postToProfileAsync = createAsyncThunk(
+  "profile/postToProfile",
+  async ({ userId, postData }, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token; // Assuming token is stored in Redux state
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      console.log("Updating profile...", postData);
+
+      const response = await axios.post(
+        `${API_URL}/api/users/${userId}/postToProfile`,
+        { postData},
+        config // Pass config for authorization
+      );
+
+      console.log(response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
+
+// Async thunk to fetch all posts for a user
+export const fetchUserPostsAsync = createAsyncThunk(
+  "posts/fetchUserPosts",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/users/posts/${userId}`);
+      console.log("all posts  = ", response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Failed to fetch posts");
+    }
+  }
+);
 
 
 
@@ -260,6 +301,35 @@ const authSlice = createSlice({
      })
     
     .addCase(updateProfilePicture.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload; 
+     })
+    .addCase(postToProfileAsync.pending, (state) => {
+       state.status = 'loading';
+    })
+    
+    .addCase(postToProfileAsync.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user.profilePosts.push(action.payload.post);
+        state.user.newsFeed.push(action.payload.post);
+        state.error = null;
+     })
+    
+    .addCase(postToProfileAsync.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload; 
+     })
+    .addCase(fetchUserPostsAsync.pending, (state) => {
+       state.status = 'loading';
+    })
+    .addCase(fetchUserPostsAsync.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user.profilePosts = action.payload.posts;
+        state.user.newsFeed = action.payload.posts;
+        state.error = null;
+     })
+    
+    .addCase(fetchUserPostsAsync.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload; 
      });

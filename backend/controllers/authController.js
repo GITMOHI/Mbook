@@ -123,7 +123,7 @@ exports.authenticateUser = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET); // Verify token
         req.user = decoded; // Attach decoded user ID to request
-        console.log(req.user);
+        // console.log(req.user);
         next();
     } catch (error) {
         return res.status(403).json({ message: "Forbidden: Invalid or expired token" });
