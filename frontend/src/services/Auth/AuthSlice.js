@@ -312,6 +312,7 @@ const authSlice = createSlice({
         state.status = 'succeeded';
         state.user.profilePosts.push(action.payload.post);
         state.user.newsFeed.push(action.payload.post);
+        console.log('hey ai hue')
         state.error = null;
      })
     

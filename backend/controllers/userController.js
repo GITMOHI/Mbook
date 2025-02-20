@@ -107,7 +107,7 @@ exports.postToProfile = async (req, res) => {
     //     { $push: { newsFeed: newPost._id } }
     //   );
     // }
-
+    // console.log(newPost);
     return res.status(201).json({ message: "Post created successfully!", post: newPost });
   } catch (error) {
     console.error("Error posting to profile:", error);
@@ -128,7 +128,7 @@ exports.fetchAllPosts = async (req, res) => {
         populate: { path: "userId", select: "name profilePicture -password" }, // Populate reactions with user details, excluding password
       })
       .sort({ createdAt: -1 }); // Sort by newest first
-     console.log("your posts = ",posts);
+    //  console.log("your posts = ",posts);
     res.status(200).json({posts:posts});
   } catch (error) {
     console.error("Error fetching user posts:", error);

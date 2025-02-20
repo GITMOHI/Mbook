@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -49,14 +47,7 @@ const ProfilePage = () => {
     console.log(formData);
   };
 
-  // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
+
 
   // Handle form submission
   const dispatch = useDispatch();
@@ -79,6 +70,7 @@ const ProfilePage = () => {
 
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
+    console.log(file);
     setIsUploading(true);
     if (file) {
       try {
@@ -103,7 +95,7 @@ const ProfilePage = () => {
         //posting profile picture to users profile..
         dispatch(
           postToProfileAsync({ userId: user._id, postData: postData })
-        ).unwrap();
+        ).unwrap().then(()=>dispatch(fetchUserPostsAsync( user._id)))
       } catch (error) {
         console.error("Error uploading profile picture:", error);
         toast.error("Failed to upload profile picture!!");
@@ -138,28 +130,101 @@ const ProfilePage = () => {
   const [videos, setVideos] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
+  const [isPostUploading, setIsPostUploading] = useState(false);
+
   // Handle File Selection
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    const newImages = [];
-    const newVideos = [];
+  // const handleFileChange = (e) => {
+  //   const files = Array.from(e.target.files);
+  //   const newImages = [];
+  //   const newVideos = [];
 
-    files.forEach((file) => {
-      if (file.type.startsWith("image/")) {
-        newImages.push(URL.createObjectURL(file)); // Preview images
-      } else if (file.type.startsWith("video/")) {
-        newVideos.push(URL.createObjectURL(file)); // Preview videos
+  //   files.forEach((file) => {
+  //     if (file.type.startsWith("image/")) {
+  //       newImages.push(URL.createObjectURL(file)); // Preview images
+  //     } else if (file.type.startsWith("video/")) {
+  //       newVideos.push(URL.createObjectURL(file)); // Preview videos
+  //     }
+  //   });
+
+  //   setImages((prev) => [...prev, ...newImages]);
+  //   setVideos((prev) => [...prev, ...newVideos]);
+  // };
+
+  const handleMediaUpload = async (e) => {
+    const files = Array.from(e.target.files); // Convert FileList to Array
+    console.log(files); // Log selected files
+
+    setIsPostUploading(true);
+
+    if (files.length > 0) {
+      try {
+        console.log("Uploading started...");
+
+        // Upload each file to Cloudinary and get URLs
+        const uploadedUrls = await Promise.all(
+          files.map(async (file) => await uploadImageToCloudinary(file))
+        );
+
+        console.log("Uploaded URLs:", uploadedUrls);
+
+        // Separate images and videos based on file type
+        const imageUrls = uploadedUrls.filter((url) =>
+          url.includes("/image/upload/")
+        );
+        const videoUrls = uploadedUrls.filter((url) =>
+          url.includes("/video/upload/")
+        );
+
+        setImages((prev) => [...prev, ...imageUrls]); // Update images state
+        setVideos((prev) => [...prev, ...videoUrls]); // Update videos state
+
+        // Dispatch an action if needed (e.g., updating the user's media collection)
+        // dispatch(
+        //   updateUserMedia({ userId: user._id, images: imageUrls, videos: videoUrls })
+        // ).unwrap();
+
+        toast.success("Media uploaded successfully!");
+      } catch (error) {
+        console.error("Error uploading media:", error);
+        toast.error("Failed to upload media!");
+      } finally {
+        setIsPostUploading(false);
       }
-    });
-
-    setImages((prev) => [...prev, ...newImages]);
-    setVideos((prev) => [...prev, ...newVideos]);
+    }
   };
-
+  
+  const handlePostText=(e)=>{
+     setText(e.target.value);
+     console.log(text);
+  }
   // Handle Post Submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const postData = { text, images, videos };
     console.log("Post Data:", postData);
+
+
+    const newPostData = {
+      texts: text, // Assuming text is already in the correct format
+      images: images,
+      videos: videos,
+    };
+
+    
+    const Data = {
+      content: {
+         texts:text,
+         images:postData.images,
+         videos:postData.videos
+      },
+      authorId: user?._id,
+    };
+
+
+    dispatch(
+      postToProfileAsync({ userId: user._id, postData: Data })
+    ).unwrap().then(()=>dispatch(fetchUserPostsAsync( user._id)))
+
+    console.log("New Post Data with URLs:", newPostData);
     setShowModal(false); // Close modal
     setText("");
     setImages([]);
@@ -422,32 +487,6 @@ const ProfilePage = () => {
         {/* Main Posts Section */}
         <div className="col-span-2 order-2 md:order-none">
           {/* whats in your mind..? */}
-          {/* <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center space-x-2">
-              <img
-                src="https://via.placeholder.com/40"
-                alt="User"
-                className="w-10 h-10 rounded-full"
-              />
-              <input
-                type="text"
-                placeholder="What's on your mind, Mohiuddin?"
-                className="w-full p-2 border border-gray-300 rounded-full"
-              />
-            </div>
-            <div className="flex justify-between mt-4">
-              <button className="flex-1 flex items-center justify-center text-gray-600 hover:bg-gray-100 p-2 rounded-md">
-                <span className="mr-2">📷</span> Photo/Video
-              </button>
-              <button className="flex-1 flex items-center justify-center text-gray-600 hover:bg-gray-100 p-2 rounded-md">
-                <span className="mr-2">🎥</span> Live Video
-              </button>
-              <button className="flex-1 flex items-center justify-center text-gray-600 hover:bg-gray-100 p-2 rounded-md">
-                <span className="mr-2">😊</span> Feeling/Activity
-              </button>
-            </div>
-          </div> */}
-
           {/* Main Post Box */}
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="flex items-center space-x-2">
@@ -485,14 +524,13 @@ const ProfilePage = () => {
           {/* Pop-up Modal */}
           {showModal && (
             <div className="fixed inset-0 flex items-center justify-center  bg-opacity-50 backdrop-blur-sm z-50">
-              <div className="bg-white p-4 rounded-lg shadow-xl w-[500px]">
+              <div className="bg-white p-4 rounded-lg shadow-xl border-slate-50 border-2   lg:h-[90%]  w-[88%] md:w-[500px] py-9">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl text-center w-full font-bold text-gray-800">
                     Create Post
                   </h2>
                   <button
-                  
                     onClick={() => setShowModal(false)}
                     className="text-gray-500 hover:text-gray-700 hover:cursor-pointer"
                   >
@@ -517,6 +555,8 @@ const ProfilePage = () => {
 
                 {/* Text Area */}
                 <textarea
+                  onChange={handlePostText}
+                  name="postText"
                   placeholder="What's on your mind?"
                   className="w-full p-3 border-none text-lg focus:ring-0 resize-none min-h-[100px]"
                 />
@@ -536,35 +576,46 @@ const ProfilePage = () => {
                 </div>
 
                 {/* Media Previews */}
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  {images.map((img, index) => (
-                    <img
-                      key={index}
-                      src={img}
-                      className="rounded-lg h-32 object-cover"
-                    />
-                  ))}
-                  {videos.map((vid, index) => (
-                    <video
-                      key={index}
-                      src={vid}
-                      controls
-                      className="rounded-lg h-32"
-                    />
-                  ))}
-                </div>
+
+                {isPostUploading ? (
+                  <div className="mt-4 grid grid-cols-3 gap-2 overflow-y-scroll h-20 md:h-36">
+                  <div className="fixed inset-0 flex items-center justify-center bg-opacity-50">
+                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  </div>
+
+                ) : (
+                  <div className="mt-4 grid grid-cols-3 gap-2 overflow-y-scroll h-20 md:h-36">
+                    {images.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        className="rounded-lg h-32 object-cover"
+                      />
+                    ))}
+                    {videos.map((vid, index) => (
+                      <video
+                        key={index}
+                        src={vid}
+                        controls
+                        className="rounded-lg h-32"
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Hidden File Input */}
                 <input
                   type="file"
                   multiple
-                  onChange={handleFileChange}
+                  onChange={handleMediaUpload}
                   className="hidden"
                   id="fileUpload"
                 />
 
                 {/* Post Button */}
                 <button
+                  disabled={isPostUploading}
                   onClick={handleSubmit}
                   className="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg"
                 >
