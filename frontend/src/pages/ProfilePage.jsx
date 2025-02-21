@@ -4,6 +4,7 @@ import {
   fetchUserPostsAsync,
   postToProfileAsync,
   selectUser,
+  updateCoverPicture,
   updateProfileDetails,
   updateProfilePicture,
 } from "../services/Auth/AuthSlice";
@@ -12,7 +13,8 @@ import { FaSchool } from "react-icons/fa6";
 import { BiHome, BiMapPin } from "react-icons/bi";
 import { uploadImageToCloudinary } from "../utils/cloudinaryUpload";
 import { toast, ToastContainer } from "react-toastify";
-import PostImages from "../components/PostImages";
+// import PostImages from "../components/PostImages";
+import SinglePost from "./SinglePost";
 
 const ProfilePage = () => {
   const user = useSelector(selectUser); // Get user data from Redux store
@@ -33,6 +35,13 @@ const ProfilePage = () => {
     description: "",
   });
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target; // Destructure the name and value from the event target
+    setFormData((prevFormData) => ({
+      ...prevFormData, // Spread the previous form data
+      [name]: value, // Update the specific field using the name as the key
+    }));
+  };
   // Initialize form data with user details when the form opens
   const handleEditDetailsClick = () => {
     setIsFormVisible(true);
@@ -46,8 +55,6 @@ const ProfilePage = () => {
 
     console.log(formData);
   };
-
-
 
   // Handle form submission
   const dispatch = useDispatch();
@@ -93,9 +100,9 @@ const ProfilePage = () => {
           authorId: user?._id,
         };
         //posting profile picture to users profile..
-        dispatch(
-          postToProfileAsync({ userId: user._id, postData: postData })
-        ).unwrap().then(()=>dispatch(fetchUserPostsAsync( user._id)))
+        dispatch(postToProfileAsync({ userId: user._id, postData: postData }))
+          .unwrap()
+          .then(() => dispatch(fetchUserPostsAsync(user._id)));
       } catch (error) {
         console.error("Error uploading profile picture:", error);
         toast.error("Failed to upload profile picture!!");
@@ -107,15 +114,37 @@ const ProfilePage = () => {
 
   const handleCoverPictureChange = async (e) => {
     const file = e.target.files[0];
+    console.log(file);
+    setIsUploading(true);
     if (file) {
       try {
+        console.log("called");
         const imageUrl = await uploadImageToCloudinary(file);
+        console.log(imageUrl);
         setCoverPicture(imageUrl);
+
+        //upload the picture to user info
         dispatch(
-          updateProfileDetails({ userId: user._id, coverPicture: imageUrl })
+          updateCoverPicture({ userId: user._id, coverPicture: imageUrl })
         ).unwrap();
+
+        toast.success("Cover Image updated successfully!");
+
+        const postData = {
+          content: {
+            images: [imageUrl],
+          },
+          authorId: user?._id,
+        };
+        //posting profile picture to users profile..
+        dispatch(postToProfileAsync({ userId: user._id, postData: postData }))
+          .unwrap()
+          .then(() => dispatch(fetchUserPostsAsync(user._id)));
       } catch (error) {
-        console.error("Error uploading cover picture:", error);
+        console.error("Error uploading profile picture:", error);
+        toast.error("Failed to upload profile picture!!");
+      } finally {
+        setIsUploading(false);
       }
     }
   };
@@ -131,24 +160,6 @@ const ProfilePage = () => {
   const [showModal, setShowModal] = useState(false);
 
   const [isPostUploading, setIsPostUploading] = useState(false);
-
-  // Handle File Selection
-  // const handleFileChange = (e) => {
-  //   const files = Array.from(e.target.files);
-  //   const newImages = [];
-  //   const newVideos = [];
-
-  //   files.forEach((file) => {
-  //     if (file.type.startsWith("image/")) {
-  //       newImages.push(URL.createObjectURL(file)); // Preview images
-  //     } else if (file.type.startsWith("video/")) {
-  //       newVideos.push(URL.createObjectURL(file)); // Preview videos
-  //     }
-  //   });
-
-  //   setImages((prev) => [...prev, ...newImages]);
-  //   setVideos((prev) => [...prev, ...newVideos]);
-  // };
 
   const handleMediaUpload = async (e) => {
     const files = Array.from(e.target.files); // Convert FileList to Array
@@ -192,16 +203,15 @@ const ProfilePage = () => {
       }
     }
   };
-  
-  const handlePostText=(e)=>{
-     setText(e.target.value);
-     console.log(text);
-  }
+
+  const handlePostText = (e) => {
+    setText(e.target.value);
+    console.log(text);
+  };
   // Handle Post Submission
   const handleSubmit = async () => {
     const postData = { text, images, videos };
     console.log("Post Data:", postData);
-
 
     const newPostData = {
       texts: text, // Assuming text is already in the correct format
@@ -209,20 +219,18 @@ const ProfilePage = () => {
       videos: videos,
     };
 
-    
     const Data = {
       content: {
-         texts:text,
-         images:postData.images,
-         videos:postData.videos
+        texts: text,
+        images: postData.images,
+        videos: postData.videos,
       },
       authorId: user?._id,
     };
 
-
-    dispatch(
-      postToProfileAsync({ userId: user._id, postData: Data })
-    ).unwrap().then(()=>dispatch(fetchUserPostsAsync( user._id)))
+    dispatch(postToProfileAsync({ userId: user._id, postData: Data }))
+      .unwrap()
+      .then(() => dispatch(fetchUserPostsAsync(user._id)));
 
     console.log("New Post Data with URLs:", newPostData);
     setShowModal(false); // Close modal
@@ -244,9 +252,9 @@ const ProfilePage = () => {
       )}
 
       {/* Cover Photo */}
-      <div className="h-64 relative">
+      <div className="h-96 relative">
         <img
-          src={coverPicture}
+          src={user?.coverImage}
           alt="Cover"
           className="w-full h-full object-cover"
         />
@@ -256,7 +264,7 @@ const ProfilePage = () => {
           className="absolute bottom-4 right-4 bg-white p-2 rounded-lg cursor-pointer hover:bg-gray-200 flex items-center space-x-2"
         >
           <span className="text-gray-800">📷</span>
-          <span className="text-sm text-gray-800">Update Cover Picture</span>
+          <span className="text-sm text-gray-800 font-bold">Edit</span>
           <input
             id="cover-picture-upload"
             type="file"
@@ -267,123 +275,114 @@ const ProfilePage = () => {
         </label>
       </div>
 
-      {/* Profile Picture and Header */}
-      <div className="max-w-6xl mx-auto px-4 mt-20">
-        <div className="flex items-center space-x-6">
-          {/* Profile Picture */}
-
-          <div className="relative -mt-10">
-            {isUploading ? (
-              // Spinner while uploading
-              <div className="w-40 h-40 flex items-center justify-center border-4 border-white rounded-full bg-gray-100">
-                <svg
-                  className="w-10 h-10 text-gray-500 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8H4z"
-                  ></path>
-                </svg>
-              </div>
-            ) : (
-              // Show profile picture when not uploading
-              <img
-                src={user.profilePicture}
-                alt="Profile"
-                className="w-40 h-40 rounded-full border-4 border-white"
-              />
-            )}
-
-            {/* Update Profile Picture Button */}
-            <label
-              htmlFor="profile-picture-upload"
-              className="absolute bottom-2 right-2 bg-white p-2 rounded-full cursor-pointer hover:bg-gray-200 flex items-center space-x-2"
-            >
-              <span className="text-gray-800">📷</span>
-              <input
-                id="profile-picture-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleProfilePictureChange}
-              />
-            </label>
-          </div>
-
-          {/* Profile Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">{user.name}</h1>
-            <p className="text-gray-600">1.5K friends</p>
-            <div className="flex space-x-2 mt-2">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                + Add to Story
-              </button>
-              <button
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
-                onClick={handleEditDetailsClick}
-              >
-                Edit Profile
-              </button>
-            </div>
-          </div>
+     
+ {/* Profile Picture and Header */}
+<div className="max-w-6xl mx-auto px-4 mt-1">
+  <div className="flex flex-col items-center sm:items-start sm:flex-row sm:space-x-6">
+    {/* Profile Picture */}
+    <div className="relative -mt-10">
+      {isUploading ? (
+        // Spinner while uploading
+        <div className="w-40 h-40 flex items-center justify-center border-4 border-white rounded-full bg-gray-100">
+          <svg
+            className="w-10 h-10 text-gray-500 animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8H4z"
+            ></path>
+          </svg>
         </div>
+      ) : (
+        // Show profile picture when not uploading
+        <img
+          src={user.profilePicture}
+          alt="Profile"
+          className="w-48 h-48 rounded-full border-4 border-white"
+        />
+      )}
 
-        {/* Tabs Menu */}
-        <div className="mt-4 border-t border-gray-300">
-          <div className="flex space-x-8">
-            <a
-              href="#posts"
-              className="py-3 text-blue-600 border-b-2 border-blue-600"
-            >
-              Posts
-            </a>
-            <a href="#about" className="py-3 text-gray-600 hover:text-blue-600">
-              About
-            </a>
-            <a
-              href="#friends"
-              className="py-3 text-gray-600 hover:text-blue-600"
-            >
-              Friends
-            </a>
-            <a
-              href="#photos"
-              className="py-3 text-gray-600 hover:text-blue-600"
-            >
-              Photos
-            </a>
-            <a
-              href="#videos"
-              className="py-3 text-gray-600 hover:text-blue-600"
-            >
-              Videos
-            </a>
-            <a href="#reels" className="py-3 text-gray-600 hover:text-blue-600">
-              Reels
-            </a>
-            <a href="#more" className="py-3 text-gray-600 hover:text-blue-600">
-              More ▼
-            </a>
-          </div>
-        </div>
+      {/* Update Profile Picture Button */}
+      <label
+        htmlFor="profile-picture-upload"
+        className="absolute bottom-2 right-2 bg-white p-2 rounded-full cursor-pointer hover:bg-gray-200 flex items-center space-x-2"
+      >
+        <span className="text-gray-800">📷</span>
+        <input
+          id="profile-picture-upload"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleProfilePictureChange}
+        />
+      </label>
+    </div>
+
+    {/* Profile Header */}
+    <div className="text-center sm:text-left mt-4 sm:mt-0">
+      <h1 className="text-3xl font-bold text-gray-800">{user?.name}</h1>
+      <p className="text-gray-600">1.5K friends</p>
+      <div className="flex items-center  gap-2 flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+          + Add to Story
+        </button>
+        <button
+          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+          onClick={handleEditDetailsClick}
+        >
+          Edit Profile
+        </button>
       </div>
+    </div>
+  </div>
+
+  {/* Tabs Menu */}
+  <div className="mt-4 border-t border-gray-300">
+    <div className="flex flex-wrap justify-center sm:justify-start space-x-4 sm:space-x-8">
+      <a
+        href="#posts"
+        className="py-3 text-blue-600 border-b-2 border-blue-600"
+      >
+        Posts
+      </a>
+      <a href="#about" className="py-3 text-gray-600 hover:text-blue-600">
+        About
+      </a>
+      <a href="#friends" className="py-3 text-gray-600 hover:text-blue-600">
+        Friends
+      </a>
+      <a href="#photos" className="py-3 text-gray-600 hover:text-blue-600">
+        Photos
+      </a>
+      <a href="#videos" className="py-3 text-gray-600 hover:text-blue-600">
+        Videos
+      </a>
+      <a href="#reels" className="py-3 text-gray-600 hover:text-blue-600">
+        Reels
+      </a>
+      <a href="#more" className="py-3 text-gray-600 hover:text-blue-600">
+        More ▼
+      </a>
+    </div>
+  </div>
+</div>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Sidebar */}
-        <div className="order-1 md:order-none">
+        <div className="order-1 md:order-none md:sticky top-10 h-screen overflow-y-auto">
           <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="text-xl font-bold text-gray-800">Intro</h2>
             <p className="text-gray-600 mt-2">
@@ -455,14 +454,17 @@ const ProfilePage = () => {
           <div className="bg-white p-4 rounded-lg shadow mt-4">
             <h2 className="text-xl font-bold text-gray-800">Photos</h2>
             <div className="grid grid-cols-3 gap-2 mt-2">
-              {[...Array(9)].map((_, i) => (
-                <img
-                  key={i}
-                  src="https://via.placeholder.com/100"
-                  alt="Photo"
-                  className="rounded-lg"
-                />
-              ))}
+              {user?.profilePosts
+                ?.flatMap((post) => post?.content?.images || [])
+                .slice(0, 9) // Flatten the array of images
+                .map((image, i) => (
+                  <img
+                    key={i} // Always use a unique key for list items
+                    src={image}
+                    alt="Post content"
+                    className="rounded-lg"
+                  />
+                ))}
             </div>
           </div>
 
@@ -485,17 +487,17 @@ const ProfilePage = () => {
         </div>
 
         {/* Main Posts Section */}
-        <div className="col-span-2 order-2 md:order-none">
+        <div className="col-span-2 order-2 md:order-none overflow-y-auto h-screen">
           {/* whats in your mind..? */}
-          {/* Main Post Box */}
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="flex items-center space-x-2">
               <img
-                src="https://via.placeholder.com/40"
+                src={user.profilePicture}
                 alt="User"
                 className="w-10 h-10 rounded-full"
               />
               <input
+                 onClick={() => setShowModal(true)}
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -579,11 +581,10 @@ const ProfilePage = () => {
 
                 {isPostUploading ? (
                   <div className="mt-4 grid grid-cols-3 gap-2 overflow-y-scroll h-20 md:h-36">
-                  <div className="fixed inset-0 flex items-center justify-center bg-opacity-50">
-                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="fixed inset-0 flex items-center justify-center bg-opacity-50">
+                      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                   </div>
-                  </div>
-
                 ) : (
                   <div className="mt-4 grid grid-cols-3 gap-2 overflow-y-scroll h-20 md:h-36">
                     {images.map((img, index) => (
@@ -627,70 +628,7 @@ const ProfilePage = () => {
 
           <div className="mt-6 space-y-4">
             {user?.profilePosts?.map((post, i) => (
-              <div key={i} className="bg-white p-4 rounded-lg shadow">
-                {/* User Info */}
-                <div className="flex items-center space-x-2">
-                  <img
-                    src={user?.profilePicture}
-                    alt="User"
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <p className="font-bold text-gray-800">{user.name}</p>
-                    <p className="text-sm text-gray-600">2 hours ago</p>
-                  </div>
-                </div>
-
-                {/* Post Content */}
-                <p className="mt-2 text-gray-800">
-                  {post?.content?.text
-                    ? post.content.text
-                    : "Hey, hello world..."}
-                </p>
-
-                {/* Post Image (if available) */}
-                {post?.content?.images?.length > 0 && (
-                  <PostImages images={post.content.images} />
-                )}
-
-                {/* Reaction Bar */}
-                <div className="flex items-center justify-between mt-3 text-gray-600">
-                  <div className="flex items-center space-x-2">
-                    <span>👍 ❤️ 😆</span>
-                    <p>{post.reactions?.length || 0} others</p>
-                  </div>
-                  <p className="text-sm">9 comments</p>
-                </div>
-
-                {/* Like, Comment, Share Buttons */}
-                <div className="flex justify-around mt-2 border-t pt-2 text-gray-600">
-                  <button className="flex items-center space-x-1 hover:text-blue-500">
-                    👍 <span>Like</span>
-                  </button>
-                  <button className="flex items-center space-x-1 hover:text-blue-500">
-                    💬 <span>Comment</span>
-                  </button>
-                  <button className="flex items-center space-x-1 hover:text-blue-500">
-                    🔄 <span>Share</span>
-                  </button>
-                </div>
-
-                {/* Comment Section */}
-                <div className="mt-3">
-                  <div className="flex items-center space-x-2">
-                    <img
-                      src={user.profilePicture}
-                      alt="User"
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <input
-                      type="text"
-                      className="w-full border rounded-full px-3 py-1 focus:outline-none"
-                      placeholder={`Comment as ${user.name}`}
-                    />
-                  </div>
-                </div>
-              </div>
+              <SinglePost key={i} user={user} post={post} />
             ))}
           </div>
         </div>

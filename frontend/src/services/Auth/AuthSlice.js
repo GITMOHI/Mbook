@@ -170,6 +170,33 @@ export const updateProfilePicture = createAsyncThunk(
     }
   }
 );
+export const updateCoverPicture = createAsyncThunk(
+  "profile/updateCoverPicture",
+  async ({ userId, coverPicture }, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token; // Assuming token is stored in Redux state
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      console.log("Updating profile picture", coverPicture);
+
+      const response = await axios.post(
+        `${API_URL}/api/users/${userId}/setCoverPic`,
+        { coverPicture},
+        config // Pass config for authorization
+      );
+
+      console.log(response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
 
 
 export const postToProfileAsync = createAsyncThunk(
@@ -301,6 +328,20 @@ const authSlice = createSlice({
      })
     
     .addCase(updateProfilePicture.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload; 
+     })
+    .addCase(updateCoverPicture.pending, (state) => {
+       state.status = 'loading';
+    })
+    
+    .addCase(updateCoverPicture.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user.coverImage= action.payload.coverImage;
+        state.error = null;
+     })
+    
+    .addCase(updateCoverPicture.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload; 
      })

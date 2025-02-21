@@ -76,6 +76,36 @@ exports.setProfilePicture = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+exports.setCoverPicture = async (req, res) => {
+  const { userId } = req.params; // Get the user ID from the URL params
+  const { coverPicture } = req.body; // Get the updated details from the request body
+  
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+
+    user.coverImage = coverPicture || ' ';
+
+
+
+    const updatedUser = await user.save();
+    console.log('hitttttttttttttttttttt')
+    console.log(updatedUser);
+    console.log(updatedUser.coverImage);
+
+    // Return the new profile picture..
+    res.status(200).json({ coverImage: updatedUser.coverImage});
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 
 exports.postToProfile = async (req, res) => {
@@ -83,7 +113,7 @@ exports.postToProfile = async (req, res) => {
     const { postData } = req.body; // Extract post data
     const {userId} = req.params; // Get user ID from authenticated request
     
-
+    
     console.log(postData);
     if (!postData) {
       return res.status(400).json({ message: "Post content cannot be empty." });
