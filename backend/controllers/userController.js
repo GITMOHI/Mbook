@@ -92,10 +92,7 @@ exports.setCoverPicture = async (req, res) => {
 
     user.coverImage = coverPicture || ' ';
 
-
-
     const updatedUser = await user.save();
-    console.log('hitttttttttttttttttttt')
     console.log(updatedUser);
     console.log(updatedUser.coverImage);
 

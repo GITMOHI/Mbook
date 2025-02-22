@@ -74,11 +74,12 @@ const ProfilePage = () => {
   };
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
 
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
     console.log(file);
-    setIsUploading(true);
+    setIsCoverUploading(true);
     if (file) {
       try {
         console.log("called");
@@ -97,6 +98,7 @@ const ProfilePage = () => {
           content: {
             images: [imageUrl],
           },
+          isProfile:true,
           authorId: user?._id,
         };
         //posting profile picture to users profile..
@@ -107,7 +109,7 @@ const ProfilePage = () => {
         console.error("Error uploading profile picture:", error);
         toast.error("Failed to upload profile picture!!");
       } finally {
-        setIsUploading(false);
+        setIsCoverUploading(false);
       }
     }
   };
@@ -115,7 +117,7 @@ const ProfilePage = () => {
   const handleCoverPictureChange = async (e) => {
     const file = e.target.files[0];
     console.log(file);
-    setIsUploading(true);
+    setIsCoverUploading(true);
     if (file) {
       try {
         console.log("called");
@@ -134,6 +136,7 @@ const ProfilePage = () => {
           content: {
             images: [imageUrl],
           },
+          isCover: true,
           authorId: user?._id,
         };
         //posting profile picture to users profile..
@@ -144,7 +147,7 @@ const ProfilePage = () => {
         console.error("Error uploading profile picture:", error);
         toast.error("Failed to upload profile picture!!");
       } finally {
-        setIsUploading(false);
+        setIsCoverUploading(false);
       }
     }
   };
@@ -252,12 +255,38 @@ const ProfilePage = () => {
       )}
 
       {/* Cover Photo */}
-      <div className="h-96 relative">
+      <div className="h-96 max-w-6xl mx-auto flex flex-row justify-center -mt-4 items-center relative">
+      {isCoverUploading ? (
+        // Spinner while uploading
+        <div className="w-10 h-10 flex flex-row justify-center items-center  border-4 border-white rounded-full bg-gray-300">
+          <svg
+            className="w-10 h-10 text-gray-500 animate-spin"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8H4z"
+            ></path>
+          </svg>
+        </div>
+      ) :(
         <img
           src={user?.coverImage}
           alt="Cover"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-lg "
         />
+      )}
         {/* Update Cover Picture Button */}
         <label
           htmlFor="cover-picture-upload"

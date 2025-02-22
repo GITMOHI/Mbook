@@ -19,41 +19,29 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 
-// ImageGrid component remains the same...
+
 const ImageGrid = ({ images, onImageClick }) => {
   if (!images?.length) return null;
 
-  let gridClassName = "grid gap-2 mt-4";
-  if (images.length === 1) {
-    gridClassName += " grid-cols-1";
-  } else if (images.length === 2) {
-    gridClassName += " grid-cols-2";
-  } else if (images.length === 3) {
-    gridClassName += " grid-cols-2";
-  } else {
-    gridClassName += " grid-cols-2";
-  }
-
   return (
-    <div className={gridClassName}>
-      {images?.slice(0, 4)?.map((image, index) => (
+    <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2 mt-4'}`}>
+      {images.slice(0, 4).map((image, index) => (
         <div
           key={index}
-          className={`relative cursor-pointer ${
-            images?.length === 3 && index === 0 ? "col-span-2" : ""
-          }`}
+          className={`relative cursor-pointer ${images.length === 3 && index === 0 ? "col-span-2" : ""}`}
           onClick={() => onImageClick(index)}
         >
-          <img
-            src={image}
-            alt={`Post ${index + 1}`}
-            className="w-full h-48 object-cover rounded-lg"
-          />
+          <div className={`${images.length === 1 ? "aspect-auto" : "aspect-square"} w-full bg-gray-100 rounded-lg overflow-hidden`}>
+            <img
+              src={image}
+              alt={`Post ${index + 1}`}
+              className={`w-full h-full rounded-lg ${images.length === 1 ? "object-contain" : "object-contain p-1"}`}
+            />
+          </div>
+
           {index === 3 && images.length > 4 && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
-              <span className="text-white text-2xl font-bold">
-                +{images?.length - 4}
-              </span>
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black/30 via-black/20 to-transparent">
+              <span className="text-white text-2xl font-bold drop-shadow-md">+{images.length - 4}</span>
             </div>
           )}
         </div>
@@ -61,6 +49,9 @@ const ImageGrid = ({ images, onImageClick }) => {
     </div>
   );
 };
+
+
+
 
 const SinglePost = ({ user, post }) => {
   const [showImageModal, setShowImageModal] = useState(false);
@@ -133,7 +124,14 @@ const SinglePost = ({ user, post }) => {
           className="w-12 h-12 rounded-full"
         />
         <div>
-          <p className="font-bold text-gray-800">{user?.name}</p>
+          <div className="flex flex-row gap-1 items-center">
+            <p className="font-bold text-gray-800">{user?.name}</p>
+            {post?.isProfile? (
+              <p className="text-xs text-gray-500">updated his profile picture</p>
+            ) : post?.isCover ? (
+              <p className="text-sm text-gray-500">updated his cover image</p>
+            ) : null}
+          </div>
           <p className="text-sm text-gray-500">2 hours ago</p>
         </div>
       </div>
