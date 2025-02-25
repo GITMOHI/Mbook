@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
 import {
   X,
   ChevronLeft,
@@ -13,11 +14,12 @@ import {
   Share2,
   Smile,
   Heart,
-  Frown,
-  Angry,
-  Laugh,
 } from "lucide-react";
 import { useRef } from "react";
+import axios from "axios";
+import { UNSAFE_getSingleFetchDataStrategy } from "react-router";
+import { selectUser, updateReactionAsync } from "../services/Auth/AuthSlice";
+import { useDispatch } from "react-redux";
 
 
 const ImageGrid = ({ images, onImageClick }) => {
@@ -54,13 +56,64 @@ const ImageGrid = ({ images, onImageClick }) => {
 
 
 const SinglePost = ({ user, post }) => {
+  
+
+  // console.log(post);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [liked, setLiked] = useState(false);
   const [showComments, setShowComments] = useState(true);
   const [showReactions, setShowReactions] = useState(false); // State for reaction popup
   const [selectedReaction, setSelectedReaction] = useState(null); // State for selected reaction
+  const [allreactions, setAllReactions] = useState(post?.reactions || []);
+  const userIds = allreactions?.map((reactor) => reactor.userId) || []
+  const [reactionIcons, setReactionIcons] = useState([]); // State for reaction icons
 
+  // const reactionTypes = allreactions.map((reaction) => reaction.type);
+
+  // console.log(reactionTypes)
+  
+  const people = userIds.map((u)=>u._id);
+  console.log(people.length);
+
+
+  const [count, setCount] = useState(post?.reactions?.length || 0);
+
+
+  useEffect(() => {
+    const updatedReactionIcons = allreactions.map((reaction) => {
+      const reactionObj = reactions.find((r) => r.label === reaction.type);
+      return reactionObj ? reactionObj.icon : null;
+    });
+    setReactionIcons(updatedReactionIcons);
+  }, [allreactions]);
+  
+  // Update count whenever post.reactions.length changes
+  useEffect(() => {
+    if (post?.reactions) {
+      console.log("reactors= ",post?.reactions.userId);
+      setAllReactions(post?.reactions);
+      setCount(post.reactions.length);
+    }
+  }, [post?.reactions?.length]);
+
+
+
+
+
+  //current users, current reaction to the post....
+  const reaction = post?.reactions?.find((reaction) => reaction?.userId._id === user?._id);
+  useEffect(()=>{
+    setSelectedReaction(reaction?.type)
+
+  },[reaction?.type]);
+
+  
+
+ 
+
+
+ 
   const handleImageClick = (index) => {
     setSelectedImageIndex(index);
     setShowImageModal(true);
@@ -78,20 +131,130 @@ const SinglePost = ({ user, post }) => {
     );
   };
 
-  const handleReactionSelect = (reaction) => {
-    setSelectedReaction(reaction);
-    setLiked(true);
-    setShowReactions(false);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
+
+
+
+  // const handleReactionSelect = async (reaction) => {
+  //   const token = localStorage.getItem("accessToken");
+  //   const id = user?._id;
+  
+  //   if (!token) {
+  //     console.error("No token found. User is not authenticated.");
+  //     return;
+  //   }
+  
+  //   const config = {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   };
+  
+  //   console.log("Sending reaction", reaction);
+  //   try {
+  //     const response = await axios.post(
+  //       `${API_URL}/api/posts/${post?._id}/react`,
+  //       { userId: id, type: reaction },
+  //       config
+  //     );
+  
+  //     console.log("Received reaction", response.data);
+  
+  //     // Update the post state based on the response
+  //     if(response.data.message==="Reaction removed"){
+  //          setCount(count-1)
+  //          setSelectedReaction(null); // Set the selected reaction
+  //          setLiked(false);
+  //     }else if(response.data.message==="Reaction updated"){
+  //        setCount(count);
+  //        setSelectedReaction(reaction); // Set the selected reaction
+  //        setLiked(true);
+  //     }else{
+  //        setCount(count+1);
+  //        setSelectedReaction(reaction); // Set the selected reaction
+  //        setLiked(true);
+  //     }
+
+  //     // setSelectedReaction(reaction); // Set the selected reaction
+  //     // setLiked(true); // Mark as liked
+  //     setShowReactions(false); // Hide the reactions popup
+  //   } catch (error) {
+  //     console.error("Error updating reaction:", error);
+  //     // Optionally, show an error message to the user
+  //   }
+  // };
+  const handleReactionSelect = async (reaction) => {
+    const token = localStorage.getItem("accessToken");
+    const id = user?._id;
+
+    if (!token) {
+      console.error("No token found. User is not authenticated.");
+      return;
+    }
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+
+    console.log("Sending reaction", reaction);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/posts/${post?._id}/react`,
+        { userId: id, type: reaction },
+        config
+      );
+
+      console.log("Received reaction", response.data);
+
+      // Update the allreactions state based on the response
+      if (response.data.message === "Reaction removed") {
+  
+        setAllReactions((prevReactions) =>
+          prevReactions.filter((r) => r.userId._id !== id)
+        );
+        setCount(count - 1);
+        setSelectedReaction(null);
+        setLiked(false);
+      } else if (response.data.message === "Reaction updated") {
+       
+        setAllReactions((prevReactions) =>
+          prevReactions.map((r) =>
+            r.userId._id === id ? { ...r, type: reaction } : r
+          )
+        );
+        setCount(count);
+        setSelectedReaction(reaction);
+        setLiked(true);
+      } else {
+        
+        setAllReactions((prevReactions) => [
+          ...prevReactions,
+          { userId: { _id: id }, type: reaction },
+        ]);
+        setCount(count + 1);
+        setSelectedReaction(reaction);
+        setLiked(true);
+      }
+
+      setShowReactions(false); // Hide the reactions popup
+    } catch (error) {
+      console.error("Error updating reaction:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
-  const timeoutRef = useRef(null); // Ref to store the timeout ID
+  
+  const timeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
     setShowReactions(true);
-    clearTimeout(timeoutRef.current); // Clear any existing timeout
+    clearTimeout(timeoutRef.current); 
   };
   const handleMouseLeave = () => {
-    // Set a timeout to hide the reactions after 500ms
     timeoutRef.current = setTimeout(() => {
       setShowReactions(false);
     }, 500);
@@ -100,27 +263,40 @@ const SinglePost = ({ user, post }) => {
   const reactions = [
     {
       icon: <ThumbsUp color="blue" fill="blue" size={20} />,
-      label: "Like",
+      label: "like",
       color: "blue",
     },
     {
       icon: <Heart color="red" fill="red" size={20} />,
-      label: "Love",
+      label: "love",
       color: "red",
     },
-    { icon: "😆", label: "Haha", color: "black" },
-    { icon: "😲", label: "Wow", color: "black" },
-    { icon: "😢", label: "Sad", color: "black" },
-    { icon: "😡", label: "Angry", color: "#dc2626" },
+    { icon: "😆", label: "haha", color: "black" },
+    { icon: "😲", label: "wow", color: "black" },
+    { icon: "😢", label: "sad", color: "black" },
+    { icon: "😡", label: "angry", color: "#dc2626" },
   ];
+
+  // const reactionIcons = reactionTypes.map((type) => {
+  //   const reaction = reactions.find((r) => r.label === type);
+  //   return reaction ? reaction.icon : null;
+  // });
+
+  // console.log(post);
+    // Convert the createdAt timestamp to a Date object
+    const postDate = new Date(post?.createdAt);
+
+    // Calculate the time difference in a human-readable format
+    const timeAgo = formatDistanceToNow(postDate, { addSuffix: true });
+
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
       {/* user info.. */}
       <div className="flex items-center space-x-3">
         <img
-          src={user?.profilePicture}
-          alt={user?.name}
+          src={post?.authorId?.profilePicture}
+          alt={post?.authorId?.name}
           className="w-12 h-12 rounded-full"
         />
         <div>
@@ -132,12 +308,12 @@ const SinglePost = ({ user, post }) => {
               <p className="text-sm text-gray-500">updated his cover image</p>
             ) : null}
           </div>
-          <p className="text-sm text-gray-500">2 hours ago</p>
+          <p className="text-sm text-gray-500">{timeAgo}</p>
         </div>
       </div>
 
       <p className="mt-4 text-gray-800">
-        {post?.content?.texts || "Hey, hello world..."}
+        {post?.content?.texts  || "Hey, hello world..."}
       </p>
 
       <ImageGrid
@@ -147,15 +323,26 @@ const SinglePost = ({ user, post }) => {
 
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         {/* Like, Comment, Share Section */}
-        {/* Reactions */}
         <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <span>👍 ❤️</span>
-          <span>Rakib Hossain, Mi Jan, and 107 others</span>
+        
+        <span className="flex flex-row gap-1">
+          <span>{reactionIcons.map((icon, index) => (
+          <span key={index}>{icon}</span>
+        ))}</span>
+        {!people?.length
+          ? "No reactions"
+          : people.length === 1
+          ? userIds[0]['name']
+          : people.length === 2
+          ? `${userIds[0]['name']} and ${userIds[1]['name']}`
+          : `${userIds.slice(-2).join(" and ")} and ${userIds.length - 2} others`}
+      </span>
+        
         </div>
         <div className="flex justify-around p-4 border-t mt-4">
           <div className="relative">
             <button
-              className={`flex items-center space-x-2 ${
+              className={`flex items-center space-x-2 hover:cursor-pointer ${
                 liked ? "text-blue-600" : "text-gray-600"
               } hover:text-blue-600`}
               onMouseEnter={handleMouseEnter}
@@ -167,20 +354,22 @@ const SinglePost = ({ user, post }) => {
               ) : (
                 <ThumbsUp size={20} />
               )}
-              <span>{selectedReaction || "Like"}</span>
+              <span>{selectedReaction || "like"}</span>
             </button>
+
             {showReactions && (
               <div
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
-                className="absolute bottom-8 left-0 bg-white rounded-full shadow-lg p-2 flex space-x-2 transition-opacity duration-200 ease-in-out"
+                className="absolute bottom-8 left-0 h-10 cursor-pointer rounded-full bg-white z-50 shadow-2xl p-2 flex space-x-2 transition-opacity duration-200 ease-in-out"
               >
                 {reactions.map((reaction, index) => (
                   <button
                     key={index}
-                    className="hover:scale-110 transform transition-transform"
+                    className="hover:scale-x-150 hover:scale-y-150 cursor-pointer transform transition-transform"
                     onClick={() => handleReactionSelect(reaction.label)}
                   >
+              
                     <span style={{ color: reaction.color }}>
                       {" "}
                       {reaction.icon}
@@ -352,7 +541,7 @@ const SinglePost = ({ user, post }) => {
             {/* Comments section - scrollable */}
             <div className="flex-1 overflow-y-auto p-4">
               <div className="space-y-4">
-                {[1, 2, 3].map((_, i) => (
+                {[1].map((_, i) => (
                   <div key={i} className="flex space-x-2">
                     <img
                       src={user?.profilePicture}
@@ -361,7 +550,7 @@ const SinglePost = ({ user, post }) => {
                     />
                     <div className="flex-1">
                       <div className="bg-gray-100 rounded-lg p-2">
-                        <p className="font-semibold text-sm">User Name</p>
+                        <p className="font-semibold text-sm">Useriii Name</p>
                         <p className="text-sm">This is a sample comment.</p>
                       </div>
                       <div className="flex space-x-2 mt-1 text-xs text-gray-500">

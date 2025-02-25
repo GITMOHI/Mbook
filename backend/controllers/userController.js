@@ -152,13 +152,119 @@ exports.fetchAllPosts = async (req, res) => {
     const posts = await Post.find({ authorId: userId, pageId: null }) 
       .populate({
         path: "reactions",
-        populate: { path: "userId", select: "name profilePicture -password" }, // Populate reactions with user details, excluding password
+        populate: { path: "userId", select: "-password -refreshToken" }, // Exclude password only
+  
+      })
+      .populate({
+        path: "authorId", // Populate the authorId field
+        select: "-password -refreshToken", // Exclude sensitive fields
       })
       .sort({ createdAt: -1 }); // Sort by newest first
-    //  console.log("your posts = ",posts);
-    res.status(200).json({posts:posts});
+
+    res.status(200).json({ posts });
   } catch (error) {
     console.error("Error fetching user posts:", error);
     res.status(500).json({ message: "Failed to fetch posts" });
+  }
+};
+
+
+
+exports.sendFriendRequest = async (req, res) => {
+  const { senderId, receiverId } = req.body;
+
+  console.log(senderId, receiverId);
+
+  try {
+
+    // Find sender and receiver
+    const sender = await User.findById(senderId).select('+password'); // Include the password field
+    const receiver = await User.findById(receiverId).select('+password'); // Include the password field
+
+    if (!sender || !receiver) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    
+
+    // Check if a friend request has already been sent
+    if (sender.friendRequestsSent.includes(receiverId)) {
+      return res.status(400).json({ message: 'Friend request already sent' });
+    }
+
+    if (receiver.friendRequestsReceived.includes(senderId)) {
+      return res.status(400).json({ message: 'Friend request already received' });
+    }
+
+    // Update sender and receiver
+    sender.friendRequestsSent.push(receiverId);
+    receiver.friendRequestsReceived.push(senderId);
+    
+    console.log('here');
+    // Save changes to the database
+    await sender.save();
+    await receiver.save();
+
+    res.status(200).json({ message: 'Friend request sent successfully', sender });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+
+exports.confirmFriendRequest = async (req, res) => {
+  const { senderId, receiverId } = req.body;
+
+  try {
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+
+    if (!sender || !receiver) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    sender.friends.push(receiverId);
+    receiver.friends.push(senderId);
+
+    sender.friendRequestsReceived = sender.friendRequestsReceived.filter(id => id.toString() !== receiverId.toString());
+    receiver.friendRequestsSent = receiver.friendRequestsSent.filter(id => id.toString() !== senderId.toString());
+
+    await sender.save();
+    await receiver.save();
+
+    res.status(200).json(sender);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+
+exports.getAllFriendRequest = async (req, res) => {
+  const { userId } = req.params;
+  const user = await User.findById(userId) // Assuming the user ID is passed as a URL parameter
+  console.log("user = ",user)
+
+  try {
+    // Find the user by ID and populate the `friendRequestsReceived` field with user details
+    const user = await User.findById(userId)
+      .populate({
+        path: 'friendRequestsReceived',
+        select: 'name profilePicture', // Select only the fields you need
+      })
+      .exec();
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Extract the populated friend requests
+    const friendRequests = user.friendRequestsReceived;
+
+    res.status(200).json( friendRequests );
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error });
   }
 };

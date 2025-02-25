@@ -98,7 +98,7 @@ const Navbar = () => {
         <NavLink to="/home/videos" className="hover:text-gray-300">
           <FaVideo />
         </NavLink>
-        <NavLink to="/friends" className="hover:text-gray-300">
+        <NavLink to="/home/peoples" className="hover:text-gray-300">
           <FaUserFriends />
         </NavLink>
         <NavLink to="/games" className="hover:text-gray-300">

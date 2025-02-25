@@ -18,13 +18,9 @@ import SinglePost from "./SinglePost";
 
 const ProfilePage = () => {
   const user = useSelector(selectUser); // Get user data from Redux store
-  const [profilePicture, setProfilePicture] = useState(
-    "https://via.placeholder.com/150"
-  );
-  const [coverPicture, setCoverPicture] = useState(
-    "https://via.placeholder.com/1600x400"
-  );
+
   const [isFormVisible, setIsFormVisible] = useState(false); // State to control form visibility
+  const [profilePicture,   setProfilePicture] = useState(null); // State to control form visibility
 
   // State to manage form data
   const [formData, setFormData] = useState({
@@ -79,7 +75,7 @@ const ProfilePage = () => {
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
     console.log(file);
-    setIsCoverUploading(true);
+    setIsUploading(true);
     if (file) {
       try {
         console.log("called");
@@ -98,7 +94,7 @@ const ProfilePage = () => {
           content: {
             images: [imageUrl],
           },
-          isProfile:true,
+          isProfile: true,
           authorId: user?._id,
         };
         //posting profile picture to users profile..
@@ -109,7 +105,7 @@ const ProfilePage = () => {
         console.error("Error uploading profile picture:", error);
         toast.error("Failed to upload profile picture!!");
       } finally {
-        setIsCoverUploading(false);
+        setIsUploading(false);
       }
     }
   };
@@ -256,37 +252,37 @@ const ProfilePage = () => {
 
       {/* Cover Photo */}
       <div className="h-96 max-w-6xl mx-auto flex flex-row justify-center -mt-4 items-center relative">
-      {isCoverUploading ? (
-        // Spinner while uploading
-        <div className="w-10 h-10 flex flex-row justify-center items-center  border-4 border-white rounded-full bg-gray-300">
-          <svg
-            className="w-10 h-10 text-gray-500 animate-spin"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z"
-            ></path>
-          </svg>
-        </div>
-      ) :(
-        <img
-          src={user?.coverImage}
-          alt="Cover"
-          className="w-full h-full object-cover rounded-lg "
-        />
-      )}
+        {isCoverUploading ? (
+          // Spinner while uploading
+          <div className="w-10 h-10 flex flex-row justify-center items-center  border-4 border-white rounded-full bg-gray-300">
+            <svg
+              className="w-10 h-10 text-gray-500 animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              ></path>
+            </svg>
+          </div>
+        ) : (
+          <img
+            src={user?.coverImage}
+            alt="Cover"
+            className="w-full h-full object-cover rounded-lg "
+          />
+        )}
         {/* Update Cover Picture Button */}
         <label
           htmlFor="cover-picture-upload"
@@ -304,109 +300,117 @@ const ProfilePage = () => {
         </label>
       </div>
 
-     
- {/* Profile Picture and Header */}
-<div className="max-w-6xl mx-auto px-4 mt-1">
-  <div className="flex flex-col items-center sm:items-start sm:flex-row sm:space-x-6">
-    {/* Profile Picture */}
-    <div className="relative -mt-10">
-      {isUploading ? (
-        // Spinner while uploading
-        <div className="w-40 h-40 flex items-center justify-center border-4 border-white rounded-full bg-gray-100">
-          <svg
-            className="w-10 h-10 text-gray-500 animate-spin"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z"
-            ></path>
-          </svg>
+      {/* Profile Picture and Header */}
+      <div className="max-w-6xl mx-auto px-4 mt-1">
+        <div className="flex flex-col items-center sm:items-start sm:flex-row sm:space-x-6">
+          {/* Profile Picture */}
+          <div className="relative -mt-10">
+            {isUploading ? (
+              // Spinner while uploading
+              <div className="w-40 h-40 flex items-center justify-center border-4 border-white rounded-full bg-gray-100">
+                <svg
+                  className="w-10 h-10 text-gray-500 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  ></path>
+                </svg>
+              </div>
+            ) : (
+              // Show profile picture when not uploading
+              <img
+                src={user.profilePicture}
+                alt="Profile"
+                className="w-48 h-48 rounded-full border-4 border-white"
+              />
+            )}
+
+            {/* Update Profile Picture Button */}
+            <label
+              htmlFor="profile-picture-upload"
+              className="absolute bottom-2 right-2 bg-white p-2 rounded-full cursor-pointer hover:bg-gray-200 flex items-center space-x-2"
+            >
+              <span className="text-gray-800">📷</span>
+              <input
+                id="profile-picture-upload"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleProfilePictureChange}
+              />
+            </label>
+          </div>
+
+          {/* Profile Header */}
+          <div className="text-center sm:text-left mt-4 sm:mt-0">
+            <h1 className="text-3xl font-bold text-gray-800">{user?.name}</h1>
+            <p className="text-gray-600">1.5K friends</p>
+            <div className="flex items-center  gap-2 flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                + Add to Story
+              </button>
+              <button
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+                onClick={handleEditDetailsClick}
+              >
+                Edit Profile
+              </button>
+            </div>
+          </div>
         </div>
-      ) : (
-        // Show profile picture when not uploading
-        <img
-          src={user.profilePicture}
-          alt="Profile"
-          className="w-48 h-48 rounded-full border-4 border-white"
-        />
-      )}
 
-      {/* Update Profile Picture Button */}
-      <label
-        htmlFor="profile-picture-upload"
-        className="absolute bottom-2 right-2 bg-white p-2 rounded-full cursor-pointer hover:bg-gray-200 flex items-center space-x-2"
-      >
-        <span className="text-gray-800">📷</span>
-        <input
-          id="profile-picture-upload"
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleProfilePictureChange}
-        />
-      </label>
-    </div>
-
-    {/* Profile Header */}
-    <div className="text-center sm:text-left mt-4 sm:mt-0">
-      <h1 className="text-3xl font-bold text-gray-800">{user?.name}</h1>
-      <p className="text-gray-600">1.5K friends</p>
-      <div className="flex items-center  gap-2 flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-2">
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-          + Add to Story
-        </button>
-        <button
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
-          onClick={handleEditDetailsClick}
-        >
-          Edit Profile
-        </button>
+        {/* Tabs Menu */}
+        <div className="mt-4 border-t border-gray-300">
+          <div className="flex flex-wrap justify-center sm:justify-start space-x-4 sm:space-x-8">
+            <a
+              href="#posts"
+              className="py-3 text-blue-600 border-b-2 border-blue-600"
+            >
+              Posts
+            </a>
+            <a href="#about" className="py-3 text-gray-600 hover:text-blue-600">
+              About
+            </a>
+            <a
+              href="#friends"
+              className="py-3 text-gray-600 hover:text-blue-600"
+            >
+              Friends
+            </a>
+            <a
+              href="#photos"
+              className="py-3 text-gray-600 hover:text-blue-600"
+            >
+              Photos
+            </a>
+            <a
+              href="#videos"
+              className="py-3 text-gray-600 hover:text-blue-600"
+            >
+              Videos
+            </a>
+            <a href="#reels" className="py-3 text-gray-600 hover:text-blue-600">
+              Reels
+            </a>
+            <a href="#more" className="py-3 text-gray-600 hover:text-blue-600">
+              More ▼
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-
-  {/* Tabs Menu */}
-  <div className="mt-4 border-t border-gray-300">
-    <div className="flex flex-wrap justify-center sm:justify-start space-x-4 sm:space-x-8">
-      <a
-        href="#posts"
-        className="py-3 text-blue-600 border-b-2 border-blue-600"
-      >
-        Posts
-      </a>
-      <a href="#about" className="py-3 text-gray-600 hover:text-blue-600">
-        About
-      </a>
-      <a href="#friends" className="py-3 text-gray-600 hover:text-blue-600">
-        Friends
-      </a>
-      <a href="#photos" className="py-3 text-gray-600 hover:text-blue-600">
-        Photos
-      </a>
-      <a href="#videos" className="py-3 text-gray-600 hover:text-blue-600">
-        Videos
-      </a>
-      <a href="#reels" className="py-3 text-gray-600 hover:text-blue-600">
-        Reels
-      </a>
-      <a href="#more" className="py-3 text-gray-600 hover:text-blue-600">
-        More ▼
-      </a>
-    </div>
-  </div>
-</div>
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -526,7 +530,7 @@ const ProfilePage = () => {
                 className="w-10 h-10 rounded-full"
               />
               <input
-                 onClick={() => setShowModal(true)}
+                onClick={() => setShowModal(true)}
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -656,9 +660,10 @@ const ProfilePage = () => {
           )}
 
           <div className="mt-6 space-y-4">
-            {user?.profilePosts?.map((post, i) => (
-              <SinglePost key={i} user={user} post={post} />
-            ))}
+            {user?.profilePosts?.every((post) => post.content) &&
+              user.profilePosts.map((post, i) => (
+                <SinglePost key={i} user={user} post={post} />
+              ))}
           </div>
         </div>
       </div>

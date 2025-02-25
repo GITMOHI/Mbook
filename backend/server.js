@@ -1,6 +1,6 @@
 const express = require('express');
 const connectDB = require('./config/db');
-const userRoutes = require('./routes/userRoutes');
+
 const app = express();
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -29,12 +29,15 @@ app.use(express.urlencoded({ extended: true }));
 
 
 const authRoutes = require("./routes/authRoutes");
+const userRoutes = require('./routes/userRoutes');
+const postRoutes = require('./routes/postRoutes');
 
 
 
 //routes..
 app.use('/api/users', userRoutes);
 app.use("/api/auth", authRoutes); 
+app.use("/api/posts", postRoutes); 
 
 
 const PORT = process.env.PORT || 5000;
