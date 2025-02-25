@@ -316,6 +316,24 @@ export const sendFriendRequest = createAsyncThunk(
   }
 );
 
+export const fetchSentRequests = createAsyncThunk(
+  "posts/fetchSentRequests",
+  async (userId) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+      const response = await axios.get(`${API_URL}/api/users/${userId}/sentRequests`, config);
+      console.log("sent  = ", response.data);
+      return response.data;
+    } catch (error) {
+      return error.message;
+    }
+  }
+);
 
 // Async thunk to confirm a friend request
 export const confirmFriendRequest = createAsyncThunk(

@@ -29,6 +29,7 @@ import { GrHelpBook } from "react-icons/gr";
 import { RxAvatar } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUserAsync, selectUser } from "../services/Auth/AuthSlice";
+import Notifications from "../pages/Notifications";
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -261,21 +262,7 @@ const Navbar = () => {
       </div>
 
       {/* Notification Drawer */}
-      {notificationDrawerOpen && (
-        <div className="fixed top-16 right-0 w-80 bg-white h-full shadow-lg z-50 transform transition-transform duration-300">
-          <div className="px-4 space-y-2">
-            <p className="flex items-center space-x-2 hover:bg-slate-200 p-2">
-              <FaBell className="text-blue-600" />
-              <span className="text-black">Notification 1</span>
-            </p>
-            <p className="flex items-center space-x-2 hover:bg-slate-200 p-2">
-              <FaBell className="text-blue-600" />
-              <span className="text-black">Notification 2</span>
-            </p>
-            {/* Add more notifications here */}
-          </div>
-        </div>
-      )}
+      {notificationDrawerOpen && <Notifications></Notifications>}
 
       {/* Messenger Drawer */}
       {messengerDrawerOpen && (

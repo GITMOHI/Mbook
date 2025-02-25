@@ -191,9 +191,12 @@ exports.sendFriendRequest = async (req, res) => {
     if (sender.friendRequestsSent.includes(receiverId)) {
       return res.status(400).json({ message: 'Friend request already sent' });
     }
-
+    
+    if(sender.friendRequestsReceived.includes(receiverId)){
+      return res.status(400).json({ message: `${receiver.name} has already sent Sent you a friend request` });
+    }
     if (receiver.friendRequestsReceived.includes(senderId)) {
-      return res.status(400).json({ message: 'Friend request already received' });
+      return res.status(400).json({ message: `Friend request already received by ${receiver.name}` });
     }
 
     // Update sender and receiver
@@ -241,17 +244,40 @@ exports.confirmFriendRequest = async (req, res) => {
 };
 
 
+
+exports.getSentRequests = async (req, res) => {
+  try {
+    const {userId} = req.params;
+
+    // Find the user and populate the sent friend requests
+    const user = await User.findById(userId).populate('friendRequestsSent', 'name email profilePicture');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return the populated list of sent friend requests
+    res.status(200).json(user.friendRequestsSent);
+
+  } catch (error) {
+    console.error('Error fetching sent friend requests:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
 exports.getAllFriendRequest = async (req, res) => {
   const { userId } = req.params;
   const user = await User.findById(userId) // Assuming the user ID is passed as a URL parameter
-  console.log("user = ",user)
+  // console.log("user ew= ",user)
 
   try {
     // Find the user by ID and populate the `friendRequestsReceived` field with user details
     const user = await User.findById(userId)
       .populate({
         path: 'friendRequestsReceived',
-        select: 'name profilePicture', // Select only the fields you need
+        select: 'name profilePicture email', // Select only the fields you need
       })
       .exec();
 

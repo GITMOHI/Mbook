@@ -9,7 +9,7 @@ function HomePage() {
   const dispatch = useDispatch();
   useEffect(()=>{
     dispatch(fetchUserPostsAsync(user?._id));
-  })
+  },[])
 
   return (
     <div className="text-center py-20">
