@@ -1,10 +1,10 @@
 import { useSelector, useDispatch } from 'react-redux';
 
 import { useNavigate } from 'react-router-dom';
-import { markAsRead } from '../services/Notification/NotificationSlice';
+import { markAsRead, selectNotifications } from '../services/Notification/NotificationSlice';
 
 const Notifications = () => {
-  const notifications = useSelector((state) => state.notifications) || [];
+  const notifications = useSelector(selectNotifications) || [];
   const dispatch = useDispatch();
   const navigate = useNavigate();
 

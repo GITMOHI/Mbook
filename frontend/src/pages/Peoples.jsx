@@ -5,6 +5,7 @@ import { Users, Home, Gift, List, Settings, ChevronRight } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllUsers, selectUser, sendFriendRequest, confirmFriendRequest, fetchAllFriendRequests, fetchSentRequests } from '../services/Auth/AuthSlice';
 import { toast, ToastContainer } from 'react-toastify';
+import socket from '../utils/socket';
 
 const Peoples = () => {
   const dispatch = useDispatch();
@@ -81,6 +82,19 @@ useEffect(() => {
         setSentRequests((prev) => [...prev, receiverId]);
         // Increment the counter to trigger useEffect
         setSentRequestCount((prev) => prev + 1);
+       
+
+          const notification = {
+            message: `${user?.name} sent you a friend request`,
+            senderId:user?._id,
+            receivers: [receiverId],
+            type: 'friendRequest',
+            targetId: 'friendRequest', // Replace with actual post ID
+          };
+
+          socket.emit('sendNotification', notification);
+     
+      
       })
       .catch((error) => {
         if (error.message !== "Server Error") {

@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema({
   friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   friendRequestsSent: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Sent requests
   friendRequestsReceived: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Incoming requests
+  notifications: [{ type: mongoose.Schema.Types.ObjectId, ref:"Notification"}], // Notifications
   details: {
     bornIn: { type: String, default: "" },
     currentCity: { type: String, default: "" },

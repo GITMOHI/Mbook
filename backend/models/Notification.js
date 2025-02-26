@@ -9,7 +9,9 @@ const notificationSchema = new mongoose.Schema({
     targetId: String, // ID of the post, user, or friend request
     timestamp: { type: Date, default: Date.now },
     read: { type: Boolean, default: false },
-    userIds: [String], // The user who receives the notification
+    receivers: [String], // The user who receives the notification
+    senderId: String, // ID of the sender...from whom i get the notification
+    
   });
   
-  const Notification = mongoose.model('Notification', notificationSchema);
+module.exports = mongoose.model("Notification",notificationSchema );

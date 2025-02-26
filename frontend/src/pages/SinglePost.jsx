@@ -74,7 +74,7 @@ const SinglePost = ({ user, post }) => {
   // console.log(reactionTypes)
   
   const people = userIds.map((u)=>u._id);
-  console.log(people.length);
+
 
 
   const [count, setCount] = useState(post?.reactions?.length || 0);

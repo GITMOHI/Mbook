@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FaSearch,
@@ -30,6 +30,8 @@ import { RxAvatar } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUserAsync, selectUser } from "../services/Auth/AuthSlice";
 import Notifications from "../pages/Notifications";
+import socket from "../utils/socket";
+import { addNotification, fetchNotifications } from "../services/Notification/NotificationSlice";
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -40,7 +42,27 @@ const Navbar = () => {
   const profileImage = ""; // Replace with user's profile image URL if available
 
   const user = useSelector(selectUser);
+  const dispatch = useDispatch();
 
+  useEffect(() => {
+    const userId = user?._id // Replace with actual logged-in user's ID
+  
+    socket.on(`notification-${userId}`, (notification) => {
+       console.log("notification = ",notification);
+       //userId is here the person in which account the notification will be added..means the receiver
+       dispatch(addNotification({ userId, ...notification })); // Send userId separately
+      });
+  
+    return () => {
+      socket.off(`notification-${userId}`);
+    };
+  }, [dispatch,user?._id]);
+  
+
+  useEffect(()=>{
+    dispatch(fetchNotifications(user?._id))
+     
+  },[dispatch,user?._id]);
   // Handle Drawer Toggles
   const handleDrawerToggle = (type) => {
     if (type === "notification") {
@@ -65,7 +87,6 @@ const Navbar = () => {
     setProfileDrawerOpen(false);
   };
 
-  const dispatch = useDispatch();
   const handleLogOut = (e) => {
     e.preventDefault();
     console.log("clicked log out");

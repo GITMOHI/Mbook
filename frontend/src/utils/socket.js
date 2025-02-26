@@ -1,6 +1,8 @@
-// import { io } from 'socket.io-client';
+import { io } from 'socket.io-client';
 
-// // Connect to your backend server
-// const socket = io('http://localhost:5000'); // Replace with your backend URL if deployed
+const socket = io('http://localhost:5000', {
+  transports: ['websocket'],
+  withCredentials: true, // Important for cross-origin requests
+});
 
-// export default socket;
+export default socket;
