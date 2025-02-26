@@ -1,6 +1,4 @@
-
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FaSearch,
@@ -31,7 +29,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { logoutUserAsync, selectUser } from "../services/Auth/AuthSlice";
 import Notifications from "../pages/Notifications";
 import socket from "../utils/socket";
-import { addNotification, fetchNotifications } from "../services/Notification/NotificationSlice";
+import {
+  addNotification,
+  fetchNotifications,
+  selectUnreadCount,
+} from "../services/Notification/NotificationSlice";
+
+import notificationSound from "../../public/notification.mp3";
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -43,26 +47,29 @@ const Navbar = () => {
 
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
+  const notificationSound = useRef(new Audio("/notification.mp3"));
+  const unreadCount = useSelector(selectUnreadCount);
 
   useEffect(() => {
-    const userId = user?._id // Replace with actual logged-in user's ID
-  
+    const userId = user?._id; // Replace with actual logged-in user's ID
+
     socket.on(`notification-${userId}`, (notification) => {
-       console.log("notification = ",notification);
-       //userId is here the person in which account the notification will be added..means the receiver
-       dispatch(addNotification({ userId, ...notification })); // Send userId separately
-      });
-  
+      console.log("notification = ", notification);
+      notificationSound.current
+        .play()
+        .catch((err) => console.error("Audio play failed:", err));
+
+      dispatch(addNotification({ userId, ...notification })); // Send userId separately
+    });
+
     return () => {
       socket.off(`notification-${userId}`);
     };
-  }, [dispatch,user?._id]);
-  
+  }, [dispatch, user?._id]);
 
-  useEffect(()=>{
-    dispatch(fetchNotifications(user?._id))
-     
-  },[dispatch,user?._id]);
+  useEffect(() => {
+    dispatch(fetchNotifications(user?._id));
+  }, [dispatch, user?._id]);
   // Handle Drawer Toggles
   const handleDrawerToggle = (type) => {
     if (type === "notification") {
@@ -130,10 +137,21 @@ const Navbar = () => {
 
       {/* Right: Notification, Messenger, Profile & Drawer (Drawer visible in MD and below) */}
       <div className="flex items-center space-x-6 text-2xl">
-        <FaBell
+        {/* <FaBell
           className="cursor-pointer hover:text-gray-300"
           onClick={() => handleDrawerToggle("notification")}
-        />
+        /> */}
+        <div
+          className="relative cursor-pointer"
+          onClick={() => handleDrawerToggle("notification")}
+        >
+          <FaBell className="hover:text-gray-300" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </div>
         <FaFacebookMessenger
           className="cursor-pointer hover:text-gray-300"
           onClick={() => handleDrawerToggle("messenger")}
@@ -328,7 +346,10 @@ const Navbar = () => {
           <div className="px-4 space-y-2">
             {/* User Section */}
             <div className="relative z-30 bg-white p-2 rounded-lg">
-              <NavLink to="profile" className="flex cursor-pointer items-center space-x-2 hover:bg-slate-200 p-2 rounded-md">
+              <NavLink
+                to="profile"
+                className="flex cursor-pointer items-center space-x-2 hover:bg-slate-200 p-2 rounded-md"
+              >
                 {user?.profilePicture ? (
                   <img
                     src={user.profilePicture}

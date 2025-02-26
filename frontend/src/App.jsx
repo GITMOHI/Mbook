@@ -1,6 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import routes from "./routes/routes.jsx";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { checkUserPersistence, selectUser } from "./services/Auth/AuthSlice";
 import  io  from 'socket.io-client';
@@ -14,7 +14,6 @@ function App() {
   const user = useSelector(selectUser);
   const [loading, setLoading] = useState(true);
   
-
 
   useEffect(() => {
     console.log("Attempting to connect to Socket.io server...");

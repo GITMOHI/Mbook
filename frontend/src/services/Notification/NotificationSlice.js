@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Async thunk to fetch notifications by user ID
@@ -63,6 +64,7 @@ export const clearNotifications = createAsyncThunk(
 
 const initialState = {
   allNotifications: [],
+  unreadCount: 0, 
 };
 
 const NotificationSlice = createSlice({
@@ -76,11 +78,13 @@ const NotificationSlice = createSlice({
       })
       .addCase(addNotification.fulfilled, (state, action) => {
         state.allNotifications.push(action.payload);
+        state.unreadCount += 1; // Increase count
       })
       .addCase(markAsRead.fulfilled, (state, action) => {
         state.allNotifications = state.allNotifications.map(notification =>
           notification.id === action.payload.id ? { ...notification, read: true } : notification
         );
+        state.unreadCount -=1;
       })
       .addCase(clearNotifications.fulfilled, (state) => {
         state.allNotifications = [];
@@ -90,5 +94,6 @@ const NotificationSlice = createSlice({
 
 
 export const selectNotifications= (state) => state.notification.allNotifications;
+export const selectUnreadCount = (state) => state.notification.unreadCount;
 
 export default NotificationSlice.reducer;
