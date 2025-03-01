@@ -2,6 +2,11 @@ const User = require('../models/User');
 const Post = require("../models/Post");
 const Reaction = require("../models/Reaction");
 const Notification = require('../models/Notification');
+const mongoose = require("mongoose");
+
+
+
+
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -127,15 +132,29 @@ exports.postToProfile = async (req, res) => {
       $push: { profilePosts: newPost._id, newsFeed: newPost._id }
     });
 
-    // Add post to all friends' news feed
-    // const user = await User.findById(userId);
-    // if (user.friends.length > 0) {
-    //   await User.updateMany(
-    //     { _id: { $in: user.friends } },
-    //     { $push: { newsFeed: newPost._id } }
-    //   );
-    // }
-    // console.log(newPost);
+
+  
+    
+      const user = await User.findById(userId).populate('newsFeed');;
+      
+      if (user && user.friends.length > 0) {
+        console.log('i am here..');
+        try {
+            const result = await User.updateMany(
+                { _id: { $in: user.friends } },
+                { $push: { newsFeed: { $each: [newPost._id], $position: 0 } } }
+            );
+            console.log('Update result:', result); // Log the result to see how many documents were modified
+        } catch (err) {
+            console.error('Error updating friends newsFeeds:', err);
+        }
+    }
+
+
+
+
+
+    console.log(newPost);
     return res.status(201).json({ message: "Post created successfully!", post: newPost });
   } catch (error) {
     console.error("Error posting to profile:", error);
@@ -163,6 +182,48 @@ exports.fetchAllPosts = async (req, res) => {
       .sort({ createdAt: -1 }); // Sort by newest first
 
     res.status(200).json({ posts });
+  } catch (error) {
+    console.error("Error fetching user posts:", error);
+    res.status(500).json({ message: "Failed to fetch posts" });
+  }
+};
+exports.fetchNewsFeed = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+
+    const user = await User.findById(userId)
+      .select('newsFeed')
+      .populate({
+        path: 'newsFeed',
+        model: 'Post',
+ 
+        populate: [
+          {
+            path: 'authorId',
+            model: 'User',
+            select: 'name profilePicture' 
+          },
+          {
+            path: 'reactions',
+            model: 'Reaction',
+         
+            populate: {
+              path: 'userId',
+              model: 'User',
+              select: 'name profilePicture'
+            }
+          }
+        ],
+        options: { sort: { createdAt: -1 } } 
+      });
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    return res.status(200).json( user.newsFeed);
+    
   } catch (error) {
     console.error("Error fetching user posts:", error);
     res.status(500).json({ message: "Failed to fetch posts" });
@@ -217,57 +278,6 @@ exports.sendFriendRequest = async (req, res) => {
 };
 
 
-// exports.confirmFriendRequest = async (req, res,io) => {
-//   try {
-//     const { senderId, receiverId } = req.body;
-//     console.log('confirming...');
-//     // Find both users
-//     const sender = await User.findById(senderId);
-//     const receiver = await User.findById(receiverId);
-
-//     if (!sender || !receiver) {
-//       console.log('user not here,,',senderId,receiverId);
-//       return res.status(404).json({ error: "User not found" });
-//     }
-
-   
-//     sender.friendRequestsReceived = sender.friendRequestsReceived.filter(
-//       (_id) => _id.toString() !== receiverId
-//     );
-//     receiver.friendRequestsSent = receiver.friendRequestsSent.filter(
-//       (_id) => _id.toString() !== senderId
-//     );
-
-//     // Add to friends list
-//     sender.friends.push(receiverId);
-//     receiver.friends.push(senderId);
-
-
-//     // Save changes
-//     await sender.save();
-//     await receiver.save();
-
-//     // Create a notification for the **receiver** (who sent the request)
-//     const notification = new Notification({
-//       message: `${sender.name} accepted your friend request! 🎉`,
-//       type: "requestAccepted",
-//       targetId: senderId, // The one who accepted the request
-//       receivers: [receiverId], // The requester (receiver) should receive the notification
-//       senderId: senderId, // The one who accepted the request
-//     });
-//     await notification.save();
-    
-//     console.log(notification);
-//     // Emit real-time notification to the **receiver**
-//     io.to(receiverId).emit("requestAccepted", notification);
-
-//     res.status(200).json({ message: "Friend request confirmed", notification });
-//   } catch (error) {
-//     console.error("Error confirming friend request:", error);
-//     res.status(500).json({ error: "Internal server error"  });
-//   }
-// };
-// In the controller file (e.g., userController.js)
 
 exports.confirmFriendRequest = (io) => async (req, res) => {
   try {
@@ -338,7 +348,7 @@ exports.fetchAllFriendsById = async (req, res) => {
     console.log(`Fetching friends for user: ${userId}`);
 
     // Find user and populate friends
-    const user = await User.findById(userId).populate("friends", "name email profilePicture");
+    const user = await User.findById(userId).populate("friends", "name email profilePicture newsFeed");
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });

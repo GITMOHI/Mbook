@@ -12,6 +12,7 @@ const {
   fetchAllFriendsById,
   confirmFriendRequest,
   deleteFriendRequest,
+  fetchNewsFeed,
 
 } = require("../controllers/userController");
 const { authenticateUser } = require("../controllers/authController");
@@ -41,6 +42,7 @@ module.exports = (io) => {
     .get("/:userId/fetchAllFriends", authenticateUser, fetchAllFriendsById)
     .get("/", authenticateUser, getUsers)
     .get("/posts/:userId", fetchAllPosts)
+    .get("/newsFeed/:userId", fetchNewsFeed)
     .post("/confirmFriendRequest", authenticateUser, confirmFriendRequest(io))  // Pass io to confirmFriendRequest
     .post("/sendFriendRequest", authenticateUser, sendFriendRequest)
     .post("/:userId/setProfilePic", authenticateUser, setProfilePicture)

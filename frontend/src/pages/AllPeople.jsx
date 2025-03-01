@@ -21,25 +21,21 @@ const AllPeople = () => {
   const dispatch = useDispatch();
   const [sugg, setSugg] = useState([]);
 
- // Track sent friend requests
+  // Track sent friend requests
   const [error, setError] = useState(null);
   const user = useSelector(selectUser);
   const [sentRequestCount, setSentRequestCount] = useState(0);
-  
-
-
 
   const sentReq = useSelector(selectAllSentReq) || [];
   const [sentRequests, setSentRequests] = useState(sentReq);
 
   const recReq = useSelector(selectAllReceiveReq) || [];
   const [friendRequests, setFriendRequests] = useState(recReq);
-  
+
   console.log(recReq);
-  useEffect(()=>{
+  useEffect(() => {
     setFriendRequests(recReq);
-  },[dispatch,recReq]);
-  
+  }, [dispatch, recReq]);
 
   // useEffect(()=>{
   //    setSentRequestCount(sentReq+1);
@@ -90,19 +86,20 @@ const AllPeople = () => {
   useEffect(() => {
     if (user?._id) {
       dispatch(fetchAllFriendsById(user._id));
-
     }
   }, [dispatch, user?._id]);
 
   // Extract the IDs of users in the friendRequests array
   const friendRequestIds = friendRequests?.map((request) => request._id);
   const sentRequestsIds = sentRequests?.map((request) => request._id);
-  
+
   const allFriends = useSelector(selectAllFriends) || []; // Ensure it's an array
 
   // Convert to an array of IDs safely
-  const friendIds = Array.isArray(allFriends) ? allFriends.map(friend => friend._id) : [];
-  
+  const friendIds = Array.isArray(allFriends)
+    ? allFriends.map((friend) => friend._id)
+    : [];
+
   //excluding..
   // 1. The current user
   // 2. Users who are in the friendRequests array
@@ -149,31 +146,30 @@ const AllPeople = () => {
       .then(() => {
         dispatch(fetchAllFriendsById(user?._id));
         dispatch(fetchAllFriendRequests(user?._id))
-        .unwrap()
-        .then((data) => {
-          console.log(data);
-          setFriendRequests(data);
-          setError(null);
-        })
-        .catch((error) => {
-          setError(error.message);
-          console.error("Failed to fetch users:", error);
-        });
+          .unwrap()
+          .then((data) => {
+            console.log(data);
+            setFriendRequests(data);
+            setError(null);
+          })
+          .catch((error) => {
+            setError(error.message);
+            console.error("Failed to fetch users:", error);
+          });
       })
       .catch((error) => {
         alert("Failed to confirm friend request: " + error.message);
       });
   };
 
-
   const handleDeleteReq = (requester) => {
-      console.log(requester);
-      dispatch(deleteFriendRequest({requester, rejecter:user?._id}))
+    console.log(requester);
+    dispatch(deleteFriendRequest({ requester, rejecter: user?._id }))
       .unwrap()
       .then(() => {
         toast.success("Friend Request Removed Successfully");
-        dispatch(fetchAllFriendRequests(user?._id))
-        dispatch(fetchSentRequests(user?._id))
+        dispatch(fetchAllFriendRequests(user?._id));
+        dispatch(fetchSentRequests(user?._id));
       })
       .catch((error) => {
         if (error.message !== "Server Error") {
@@ -182,8 +178,16 @@ const AllPeople = () => {
           toast.error("Friend Request Failed");
         }
       });
+  };
+
+  const handleRemoveFriendSuggestion = (suggestionId) => {
+    const newSuggestions = suggestions.filter(
+      (suggestion) => suggestion._id !== suggestionId
+    );
+    setSugg(newSuggestions);
+    
   }
- 
+
   useEffect(() => {
     friendRequests?.forEach((f) => {
       console.log(f);
@@ -193,7 +197,6 @@ const AllPeople = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       <ToastContainer position="top-right" autoClose={3000} />
-
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-8 ">
@@ -228,7 +231,10 @@ const AllPeople = () => {
                       >
                         Confirm
                       </button>
-                      <button onClick={()=>handleDeleteReq(friend._id)} className="w-full cursor-pointer bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                      <button
+                        onClick={() => handleDeleteReq(friend._id)}
+                        className="w-full cursor-pointer bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors"
+                      >
                         Delete
                       </button>
                     </div>
@@ -269,23 +275,33 @@ const AllPeople = () => {
                   </p>
                   <div className="space-y-2">
                     {sentRequestsIds.includes(person._id) ? ( // Check if request is sent
-                      <button
-                        className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md cursor-not-allowed"
-                        disabled
-                      >
-                        Request Sent
-                      </button>
+                      <div>
+                        <button
+                          className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md cursor-not-allowed"
+                          disabled
+                        >
+                          Request Sent
+                        </button>
+                        <button
+                          disabled
+                          className="w-full mt-2  bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 cursor-not-allowed transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     ) : (
-                      <button
-                        className="w-full cursor-pointer bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
-                        onClick={() => handleSendFriendRequest(person._id)}
-                      >
-                        Add Friend
-                      </button>
+                      <div >
+                        <button
+                          className="w-full cursor-pointer bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+                          onClick={() => handleSendFriendRequest(person._id)}
+                        >
+                          Add Friend
+                        </button>
+                        <button onClick={()=>handleRemoveFriendSuggestion(person._id)} className="w-full mt-2 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 cursor-pointer transition-colors">
+                          Remove
+                        </button>
+                      </div>
                     )}
-                    <button className="w-full  bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 cursor-pointer transition-colors">
-                      Remove
-                    </button>
                   </div>
                 </div>
               </div>

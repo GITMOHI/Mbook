@@ -301,7 +301,7 @@ const SinglePost = ({ user, post }) => {
         />
         <div>
           <div className="flex flex-row gap-1 items-center">
-            <p className="font-bold text-gray-800">{user?.name}</p>
+            <p className="font-bold text-gray-800">{post?.authorId?.name}</p>
             {post?.isProfile? (
               <p className="text-xs text-gray-500">updated his profile picture</p>
             ) : post?.isCover ? (

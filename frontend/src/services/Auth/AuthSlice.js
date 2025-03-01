@@ -215,6 +215,23 @@ export const fetchUserPostsAsync = createAsyncThunk(
     }
   }
 );
+// Async thunk to fetch newsFeed for a user
+export const fetchNewsFeedAsync = createAsyncThunk(
+  "posts/fetchNewsFeed",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/users/newsFeed/${userId}`);
+      console.log("newsFeed = ", response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Failed to fetch posts");
+    }
+  }
+);
+
+
+
+
 
 export const updateReactionAsync = async (reaction, userId, postId) => {
   const token = localStorage.getItem("accessToken");
@@ -398,6 +415,27 @@ export const deleteFriendRequest = createAsyncThunk(
   }
 );
 
+// Async thunk to remove a friend suggestion
+// export const removeFriendSuggestion = createAsyncThunk(
+//   'auth/removeFriendSuggestion',
+//   async ({suggestionId}, { rejectWithValue }) => {
+//     try {
+//       const token = localStorage.getItem("accessToken");
+//       const config = {   
+//         headers: {
+//           Authorization: `Bearer ${token}`, 
+//         },
+//         data: {suggestionId} 
+//       };
+
+//       const response = await axios.delete(`${API_URL}/api/users/removeFriendSuggestion`, config);
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data || "Something went wrong");
+//     }
+//   }
+// );
+
 
 
 // Create the slice
@@ -563,6 +601,18 @@ const authSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
+      .addCase(fetchNewsFeedAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchNewsFeedAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user.newsFeed = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchNewsFeedAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
   },
 });
 
@@ -577,6 +627,7 @@ export const selectToken = (state) => state.auth.token;
 export const selectAllFriends = (state) => state.auth.user.allFriends;
 export const selectAllSentReq = (state) => state.auth.user.allSentReq;
 export const selectAllReceiveReq = (state) => state.auth.user.allRecReq;
+export const selectNewsFeed = (state) => state.auth.user.newsFeed;
 
 // Export the reducer
 export default authSlice.reducer;
