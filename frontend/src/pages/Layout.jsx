@@ -17,7 +17,8 @@ import { FaUser, FaUsers, FaStore, FaTv, FaClock, FaBookmark, FaFlag, FaCalendar
 const Layout = () => {
     const location = useLocation();
     const isProfilePage = location.pathname === "/home/profile"; // Check if on Profile Page
-    const isPeoplePage = location.pathname === "/home/peoples"; // Check if on Profile Page
+    const isPeoplePage = location.pathname === "/home/peoples" || location.pathname === "/home/peoples/frndReq"  || location.pathname === "/home/peoples/frndSugg"  || location.pathname === "/home/peoples/allFriends";
+  
 
     return (
         <div className="flex flex-col h-screen">

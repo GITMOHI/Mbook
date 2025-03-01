@@ -335,18 +335,70 @@ export const fetchSentRequests = createAsyncThunk(
   }
 );
 
+export const fetchAllFriendsById = createAsyncThunk(
+  "posts/fetchAllFriendsById",
+  async (userId) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+      const response = await axios.get(`${API_URL}/api/users/${userId}/fetchAllFriends`, config);
+      console.log("sent  = ", response.data);
+      return response.data;
+    } catch (error) {
+      return error.message;
+    }
+  }
+);
+
 // Async thunk to confirm a friend request
 export const confirmFriendRequest = createAsyncThunk(
   'auth/confirmFriendRequest',
-  async ({ senderId, receiverId }, { rejectWithValue }) => {
+  async ({receiverId,senderId }, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/users/confirmFriendRequest', { senderId, receiverId });
+      console.log(receiverId,"  ",senderId);
+      const token = localStorage.getItem("accessToken");
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      const response = await axios.post(`${API_URL}/api/users/confirmFriendRequest`, {receiverId ,senderId},config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
   }
 );
+
+
+
+// Async thunk to delete a friend request
+export const deleteFriendRequest = createAsyncThunk(
+  'auth/deleteFriendRequest',
+  async ({ requester, rejecter }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = {   
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+        data: { requester, rejecter } // Correct way to send data in DELETE request
+      };
+
+      const response = await axios.delete(`${API_URL}/api/users/deleteFriendRequest`, config);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
+
+
 
 // Create the slice
 const authSlice = createSlice({
@@ -473,7 +525,44 @@ const authSlice = createSlice({
       .addCase(fetchUserPostsAsync.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
-      });
+      })
+      .addCase(fetchAllFriendsById.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchAllFriendsById.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user.allFriends = action.payload;
+        state.user.friends = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAllFriendsById.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
+      .addCase(fetchSentRequests.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchSentRequests.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user.allSentReq = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchSentRequests.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
+      .addCase(fetchAllFriendRequests.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchAllFriendRequests.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user.allRecReq = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchAllFriendRequests.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
   },
 });
 
@@ -485,6 +574,9 @@ export const selectUser = (state) => state.auth.user;
 export const selectAuthStatus = (state) => state.auth.status;
 export const selectAuthError = (state) => state.auth.error;
 export const selectToken = (state) => state.auth.token;
+export const selectAllFriends = (state) => state.auth.user.allFriends;
+export const selectAllSentReq = (state) => state.auth.user.allSentReq;
+export const selectAllReceiveReq = (state) => state.auth.user.allRecReq;
 
 // Export the reducer
 export default authSlice.reducer;

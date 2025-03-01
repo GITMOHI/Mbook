@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Post = require("../models/Post");
 const Reaction = require("../models/Reaction");
+const Notification = require('../models/Notification');
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -216,33 +217,139 @@ exports.sendFriendRequest = async (req, res) => {
 };
 
 
+// exports.confirmFriendRequest = async (req, res,io) => {
+//   try {
+//     const { senderId, receiverId } = req.body;
+//     console.log('confirming...');
+//     // Find both users
+//     const sender = await User.findById(senderId);
+//     const receiver = await User.findById(receiverId);
 
-exports.confirmFriendRequest = async (req, res) => {
-  const { senderId, receiverId } = req.body;
+//     if (!sender || !receiver) {
+//       console.log('user not here,,',senderId,receiverId);
+//       return res.status(404).json({ error: "User not found" });
+//     }
 
+   
+//     sender.friendRequestsReceived = sender.friendRequestsReceived.filter(
+//       (_id) => _id.toString() !== receiverId
+//     );
+//     receiver.friendRequestsSent = receiver.friendRequestsSent.filter(
+//       (_id) => _id.toString() !== senderId
+//     );
+
+//     // Add to friends list
+//     sender.friends.push(receiverId);
+//     receiver.friends.push(senderId);
+
+
+//     // Save changes
+//     await sender.save();
+//     await receiver.save();
+
+//     // Create a notification for the **receiver** (who sent the request)
+//     const notification = new Notification({
+//       message: `${sender.name} accepted your friend request! 🎉`,
+//       type: "requestAccepted",
+//       targetId: senderId, // The one who accepted the request
+//       receivers: [receiverId], // The requester (receiver) should receive the notification
+//       senderId: senderId, // The one who accepted the request
+//     });
+//     await notification.save();
+    
+//     console.log(notification);
+//     // Emit real-time notification to the **receiver**
+//     io.to(receiverId).emit("requestAccepted", notification);
+
+//     res.status(200).json({ message: "Friend request confirmed", notification });
+//   } catch (error) {
+//     console.error("Error confirming friend request:", error);
+//     res.status(500).json({ error: "Internal server error"  });
+//   }
+// };
+// In the controller file (e.g., userController.js)
+
+exports.confirmFriendRequest = (io) => async (req, res) => {
   try {
+    const { senderId, receiverId } = req.body;
+    console.log('Confirming friend request...');
+
+    // Find both users
     const sender = await User.findById(senderId);
     const receiver = await User.findById(receiverId);
 
     if (!sender || !receiver) {
-      return res.status(404).json({ message: 'User not found' });
+      console.log('One or both users not found:', senderId, receiverId);
+      return res.status(404).json({ error: "User not found" });
     }
 
+    // Check if they are already friends
+    if (sender.friends.includes(receiverId) || receiver.friends.includes(senderId)) {
+      return res.status(400).json({ error: "They are already friends" });
+    }
+
+    // Remove friend request
+    sender.friendRequestsReceived = sender.friendRequestsReceived.filter(
+      (_id) => _id.toString() !== receiverId
+    );
+    receiver.friendRequestsSent = receiver.friendRequestsSent.filter(
+      (_id) => _id.toString() !== senderId
+    );
+
+    // Add to friends list
     sender.friends.push(receiverId);
     receiver.friends.push(senderId);
 
-    sender.friendRequestsReceived = sender.friendRequestsReceived.filter(id => id.toString() !== receiverId.toString());
-    receiver.friendRequestsSent = receiver.friendRequestsSent.filter(id => id.toString() !== senderId.toString());
-
+    // Save changes
     await sender.save();
     await receiver.save();
 
-    res.status(200).json(sender);
+    // Create a notification for the **receiver** (who sent the request)
+    const notification = new Notification({
+      message: `${sender.name} accepted your friend request! 🎉`,
+      type: "requestAccepted",
+      targetId: senderId, // The one who accepted the request
+      receivers: [receiverId], // The requester (receiver) should receive the notification
+      senderId: senderId, // The one who accepted the request
+    });
+    await notification.save();
+    await User.findByIdAndUpdate(receiverId, {
+      $push: { notifications: notification._id },
+    });
+
+    console.log("Notification saved:", notification);
+
+    // Emit real-time notification to the **receiver**
+    io.emit(`requestAccepted-${receiverId}`, notification);
+
+    // Send response with the notification and updated user info
+    res.status(200).json({ message: "Friend request confirmed", notification, sender, receiver });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Error confirming friend request:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
+
+exports.fetchAllFriendsById = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log(`Fetching friends for user: ${userId}`);
+
+    // Find user and populate friends
+    const user = await User.findById(userId).populate("friends", "name email profilePicture");
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    res.status(200).json(user.friends);
+  } catch (error) {
+    console.error("Error fetching friends:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};
 
 
 exports.getSentRequests = async (req, res) => {
@@ -293,4 +400,42 @@ exports.getAllFriendRequest = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error', error });
   }
+};
+
+
+
+exports.deleteFriendRequest = async (req, res) => {
+    try {
+        
+        const { requester, rejecter } = req.body; // Get user IDs
+        console.log('Requester:', requester);
+
+        if (!requester || !rejecter) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        // Remove requester from rejecter's received requests
+        const rejecterUser = await User.findByIdAndUpdate(
+            rejecter,
+            { $pull: { friendRequestsReceived: requester } },
+            { new: true }
+        );
+
+        // Remove rejecter from requester's sent requests
+        const requesterUser = await User.findByIdAndUpdate(
+            requester,
+            { $pull: { friendRequestsSent: rejecter } },
+            { new: true }
+        );
+
+        if (!rejecterUser || !requesterUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        return res.status(200).json({ message: "Friend request deleted successfully" });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server Error" });
+    }
 };

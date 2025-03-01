@@ -9,7 +9,15 @@ export const fetchNotifications = createAsyncThunk(
   'notifications/fetchNotifications',
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/api/notifications/fetchNotifications/${userId}`);
+      const token = localStorage.getItem("accessToken");
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      const response = await axios.get(`${API_URL}/api/notifications/fetchNotifications/${userId}`,config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -41,13 +49,24 @@ export const markAsRead = createAsyncThunk(
   'notifications/markAsRead',
   async (notificationId, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`${API_URL}/api/notifications/${notificationId}/read`);
+
+      console.log(notificationId)
+      const token = localStorage.getItem("accessToken");
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+
+      const response = await axios.patch(`${API_URL}/api/notifications/markRead`,{notificationId},config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
+
 
 // Async thunk to clear all notifications
 export const clearNotifications = createAsyncThunk(
@@ -75,6 +94,8 @@ const NotificationSlice = createSlice({
     builder
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.allNotifications = action.payload;
+        state.unreadCount = action.payload.filter(notification => !notification.read).length;
+
       })
       .addCase(addNotification.fulfilled, (state, action) => {
         state.allNotifications.push(action.payload);
@@ -84,7 +105,7 @@ const NotificationSlice = createSlice({
         state.allNotifications = state.allNotifications.map(notification =>
           notification.id === action.payload.id ? { ...notification, read: true } : notification
         );
-        state.unreadCount -=1;
+        if(state.unreadCount>0)state.unreadCount -=1;
       })
       .addCase(clearNotifications.fulfilled, (state) => {
         state.allNotifications = [];

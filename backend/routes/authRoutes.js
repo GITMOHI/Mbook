@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-const { register, login, refreshToken, fetchMe, logout } = require("../controllers/authController");
+const { register, login, refreshToken, fetchMe, logout, confirmFriendRequest } = require("../controllers/authController");
 
 const router = express.Router();
 

@@ -12,11 +12,13 @@ import {
   selectAllFriends,
   selectAllSentReq,
   selectAllReceiveReq,
+  deleteFriendRequest,
 } from "../services/Auth/AuthSlice";
 import { toast, ToastContainer } from "react-toastify";
 import socket from "../utils/socket";
 
-const Peoples = () => {
+const FriendRequests = () => {
+
   const dispatch = useDispatch();
   const [sugg, setSugg] = useState([]);
 
@@ -33,6 +35,13 @@ const Peoples = () => {
 
   const recReq = useSelector(selectAllReceiveReq) || [];
   const [friendRequests, setFriendRequests] = useState(recReq);
+  
+  console.log(recReq);
+  useEffect(()=>{
+    setFriendRequests(recReq);
+    // setSentRequestCount(sentReq);
+  },[dispatch,recReq]);
+
 
   useEffect(() => {
     dispatch(fetchAllUsers())
@@ -136,7 +145,6 @@ const Peoples = () => {
     dispatch(confirmFriendRequest({ receiverId, senderId: user?._id }))
       .unwrap()
       .then(() => {
-        alert("Friend request confirmed successfully");
         dispatch(fetchAllFriendsById(user?._id));
         dispatch(fetchAllFriendRequests(user?._id))
         .unwrap()
@@ -155,52 +163,34 @@ const Peoples = () => {
       });
   };
 
-  const sidebarItems = [
-    { icon: <Home size={20} />, label: "Home" },
-    { icon: <Users size={20} />, label: "Friend Requests", hasMore: true },
-    { icon: <Users size={20} />, label: "Suggestions", hasMore: true },
-    { icon: <Users size={20} />, label: "All friends", hasMore: true },
-    { icon: <Gift size={20} />, label: "Birthdays" },
-    { icon: <List size={20} />, label: "Custom Lists", hasMore: true },
-  ];
 
-  useEffect(() => {
-    friendRequests?.forEach((f) => {
-      console.log(f);
-    });
-  }, []);
+  const handleDeleteReq = (requester) => {
+      console.log(requester);
+      dispatch(deleteFriendRequest({requester, rejecter:user?._id}))
+      .unwrap()
+      .then(() => {
+        toast.success("Friend Request Removed Successfully");
+        dispatch(fetchAllFriendRequests(user?._id))
+        dispatch(fetchSentRequests(user?._id))
+      })
+      .catch((error) => {
+        if (error.message !== "Server Error") {
+          toast.error(error.message);
+        } else {
+          toast.error("Friend Request Failed");
+        }
+      });
+  }
+ 
+  // useEffect(() => {
+  //   friendRequests?.forEach((f) => {
+  //     console.log(f);
+  //   });
+  // }, []);
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      <ToastContainer position="top-right" autoClose={3000} />
-      {/* Sidebar */}
-      <div className="w-[280px] lg:w-[360px] bg-white p-4 shadow-sm hidden md:block h-full">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Friends</h1>
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <Settings size={20} />
-          </button>
-        </div>
-        <nav>
-          {sidebarItems.map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer mb-1"
-            >
-              <div className="flex items-center gap-3">
-                {item.icon}
-                <span className="font-medium">{item.label}</span>
-              </div>
-              {item.hasMore && <ChevronRight size={20} />}
-            </div>
-          ))}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-        {/* Friend Requests Section */}
-        <section className="mb-8">
+    return (
+        <div>
+         <section className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Friend Requests</h2>
           {friendRequests && friendRequests.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
@@ -225,12 +215,12 @@ const Peoples = () => {
                     </p>
                     <div className="space-y-2">
                       <button
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+                        className="w-full cursor-pointer bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
                         onClick={() => handleConfirmFriendRequest(friend._id)}
                       >
                         Confirm
                       </button>
-                      <button className="w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                      <button  onClick={()=>handleDeleteReq(friend._id)} className=" cursor-pointer w-full bg-gray-100 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
                         Delete
                       </button>
                     </div>
@@ -245,58 +235,8 @@ const Peoples = () => {
             </div>
           )}
         </section>
-
-        {/* People You May Know Section */}
-        <section>
-          <h2 className="text-2xl font-bold mb-4">People you may know</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-            {suggestions?.map((person) => (
-              <div
-                key={person._id}
-                className="bg-white rounded-lg shadow overflow-hidden"
-              >
-                <div className="aspect-w-1 aspect-h-1">
-                  <img
-                    src={person?.profilePicture}
-                    alt={person?.name}
-                    className="w-full h-64 object-cover"
-                  />
-                </div>
-                <div className="p-3">
-                  <h3 className="font-semibold text-green-400">
-                    {person.email}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    {person.mutualFriends} mutual friends
-                  </p>
-                  <div className="space-y-2">
-                    {sentRequestsIds.includes(person._id) ? ( // Check if request is sent
-                      <button
-                        className="w-full bg-gray-300 text-gray-800 py-2 px-4 rounded-md cursor-not-allowed"
-                        disabled
-                      >
-                        Request Sent
-                      </button>
-                    ) : (
-                      <button
-                        className="w-full cursor-pointer bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
-                        onClick={() => handleSendFriendRequest(person._id)}
-                      >
-                        Add Friend
-                      </button>
-                    )}
-                    <button className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 cursor-pointer transition-colors">
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+        </div>
+    );
 };
 
-export default Peoples;
+export default FriendRequests;

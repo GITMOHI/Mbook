@@ -26,7 +26,7 @@ import { MdLogout } from "react-icons/md";
 import { GrHelpBook } from "react-icons/gr";
 import { RxAvatar } from "react-icons/rx";
 import { useDispatch, useSelector } from "react-redux";
-import { logoutUserAsync, selectUser } from "../services/Auth/AuthSlice";
+import { fetchSentRequests, logoutUserAsync, selectUser } from "../services/Auth/AuthSlice";
 import Notifications from "../pages/Notifications";
 import socket from "../utils/socket";
 import {
@@ -58,8 +58,17 @@ const Navbar = () => {
       notificationSound.current
         .play()
         .catch((err) => console.error("Audio play failed:", err));
+      dispatch(fetchNotifications(userId));
+    });
 
-      dispatch(addNotification({ userId, ...notification })); // Send userId separately
+    // Listen for the 'requestAccepted' event
+    socket.on(`requestAccepted-${userId}`, (notification) => {
+      console.log("Received notification: ", notification);
+      notificationSound.current
+      .play()
+      .catch((err) => console.error("Audio play failed:", err));
+      dispatch(fetchNotifications(userId));
+      dispatch(fetchSentRequests(user?._id))
     });
 
     return () => {
@@ -67,6 +76,10 @@ const Navbar = () => {
     };
   }, [dispatch, user?._id]);
 
+
+
+
+  
   useEffect(() => {
     dispatch(fetchNotifications(user?._id));
   }, [dispatch, user?._id]);
