@@ -436,6 +436,18 @@ export const deleteFriendRequest = createAsyncThunk(
 //   }
 // );
 
+// Fetch user by ID
+export const fetchUserByIdAsync = createAsyncThunk(
+  "auth/fetchUserById",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
 
 
 // Create the slice
@@ -613,6 +625,17 @@ const authSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
+      .addCase(fetchUserByIdAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchUserByIdAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.profileUser = action.payload; // Store visited profile
+      })
+      .addCase(fetchUserByIdAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      });
   },
 });
 

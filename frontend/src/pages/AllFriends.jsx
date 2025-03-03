@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   fetchAllFriendsById,
   selectAllFriends,
@@ -30,7 +30,7 @@ const AllFriends = () => {
             <div
               key={friend._id}
               className="bg-white shadow-md rounded-xl overflow-hidden transition-transform hover:scale-105 cursor-pointer"
-              onClick={() => navigate(`/profile/${friend._id}`)}
+              // onClick={() => navigate(`/profiles/${friend._id}`)}
             >
               <img
                 src={friend.profilePicture || "/default-avatar.png"}
@@ -38,9 +38,14 @@ const AllFriends = () => {
                 className="w-full h-56 object-cover"
               />
               <div className="p-4 text-center">
-                <h3 className="text-lg font-semibold text-gray-800">
+                
+                <NavLink to={`/home/profiles/${friend._id}`}>
+                <h3 className="text-lg font-semibold hover:underline text-gray-800"
+                // onClick={() => navigate(`/profiles/${friend._id}`)}
+                >
                   {friend.name}
                 </h3>
+                </NavLink>
                 <p className="text-sm text-gray-500">15 mutual friends</p>
                 <button
                   className="mt-3 cursor-pointer w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"

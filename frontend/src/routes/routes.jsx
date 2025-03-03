@@ -16,6 +16,8 @@ import AllPeople from "../pages/AllPeople";
 import FriendRequests from "../pages/FriendRequests";
 import Suggestions from "../pages/Suggestions";
 import AllFriends from "../pages/AllFriends";
+import ProfilePageView from "../pages/ProfilePageView";
+import ProfileRedirect from "../components/ProfileRedirect";
 
 
 // const routes = createBrowserRouter([
@@ -77,7 +79,11 @@ const routes = createBrowserRouter([
         ]
       
       },
-      { path:"profile", element: <ProfilePage />}
+      { path:"profile", element: <ProfilePage />},
+      {
+        path: "profiles/:id",
+        element: <ProfilePageView></ProfilePageView>
+      },
     ],
   },
   {

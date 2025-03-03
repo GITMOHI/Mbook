@@ -17,33 +17,46 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 import axios from "axios";
-import { UNSAFE_getSingleFetchDataStrategy } from "react-router";
+
 import { selectUser, updateReactionAsync } from "../services/Auth/AuthSlice";
 import { useDispatch } from "react-redux";
-
 
 const ImageGrid = ({ images, onImageClick }) => {
   if (!images?.length) return null;
 
   return (
-    <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2 mt-4'}`}>
+    <div
+      className={`grid gap-2 ${
+        images.length === 1 ? "grid-cols-1" : "grid-cols-2 mt-4"
+      }`}
+    >
       {images.slice(0, 4).map((image, index) => (
         <div
           key={index}
-          className={`relative cursor-pointer ${images.length === 3 && index === 0 ? "col-span-2" : ""}`}
+          className={`relative cursor-pointer ${
+            images.length === 3 && index === 0 ? "col-span-2" : ""
+          }`}
           onClick={() => onImageClick(index)}
         >
-          <div className={`${images.length === 1 ? "aspect-auto" : "aspect-square"} w-full bg-gray-100 rounded-lg overflow-hidden`}>
+          <div
+            className={`${
+              images.length === 1 ? "aspect-auto" : "aspect-square"
+            } w-full bg-gray-100 rounded-lg overflow-hidden`}
+          >
             <img
               src={image}
               alt={`Post ${index + 1}`}
-              className={`w-full h-full rounded-lg ${images.length === 1 ? "object-contain" : "object-contain p-1"}`}
+              className={`w-full h-full rounded-lg ${
+                images.length === 1 ? "object-contain" : "object-contain p-1"
+              }`}
             />
           </div>
 
           {index === 3 && images.length > 4 && (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-black/30 via-black/20 to-transparent">
-              <span className="text-white text-2xl font-bold drop-shadow-md">+{images.length - 4}</span>
+              <span className="text-white text-2xl font-bold drop-shadow-md">
+                +{images.length - 4}
+              </span>
             </div>
           )}
         </div>
@@ -52,12 +65,7 @@ const ImageGrid = ({ images, onImageClick }) => {
   );
 };
 
-
-
-
 const SinglePost = ({ user, post }) => {
-  
-
   // console.log(post);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -66,19 +74,16 @@ const SinglePost = ({ user, post }) => {
   const [showReactions, setShowReactions] = useState(false); // State for reaction popup
   const [selectedReaction, setSelectedReaction] = useState(null); // State for selected reaction
   const [allreactions, setAllReactions] = useState(post?.reactions || []);
-  const userIds = allreactions?.map((reactor) => reactor.userId) || []
+  const userIds = allreactions?.map((reactor) => reactor.userId) || [];
   const [reactionIcons, setReactionIcons] = useState([]); // State for reaction icons
 
   // const reactionTypes = allreactions.map((reaction) => reaction.type);
 
   // console.log(reactionTypes)
-  
-  const people = userIds.map((u)=>u._id);
 
-
+  const people = userIds.map((u) => u._id);
 
   const [count, setCount] = useState(post?.reactions?.length || 0);
-
 
   useEffect(() => {
     const updatedReactionIcons = allreactions.map((reaction) => {
@@ -87,33 +92,24 @@ const SinglePost = ({ user, post }) => {
     });
     setReactionIcons(updatedReactionIcons);
   }, [allreactions]);
-  
+
   // Update count whenever post.reactions.length changes
   useEffect(() => {
     if (post?.reactions) {
-      console.log("reactors= ",post?.reactions.userId);
+      console.log("reactors= ", post?.reactions.userId);
       setAllReactions(post?.reactions);
       setCount(post.reactions.length);
     }
   }, [post?.reactions?.length]);
 
-
-
-
-
   //current users, current reaction to the post....
-  const reaction = post?.reactions?.find((reaction) => reaction?.userId._id === user?._id);
-  useEffect(()=>{
-    setSelectedReaction(reaction?.type)
+  const reaction = post?.reactions?.find(
+    (reaction) => reaction?.userId._id === user?._id
+  );
+  useEffect(() => {
+    setSelectedReaction(reaction?.type);
+  }, [reaction?.type]);
 
-  },[reaction?.type]);
-
-  
-
- 
-
-
- 
   const handleImageClick = (index) => {
     setSelectedImageIndex(index);
     setShowImageModal(true);
@@ -131,60 +127,8 @@ const SinglePost = ({ user, post }) => {
     );
   };
 
-
   const API_URL = import.meta.env.VITE_API_URL;
 
-
-
-
-  // const handleReactionSelect = async (reaction) => {
-  //   const token = localStorage.getItem("accessToken");
-  //   const id = user?._id;
-  
-  //   if (!token) {
-  //     console.error("No token found. User is not authenticated.");
-  //     return;
-  //   }
-  
-  //   const config = {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   };
-  
-  //   console.log("Sending reaction", reaction);
-  //   try {
-  //     const response = await axios.post(
-  //       `${API_URL}/api/posts/${post?._id}/react`,
-  //       { userId: id, type: reaction },
-  //       config
-  //     );
-  
-  //     console.log("Received reaction", response.data);
-  
-  //     // Update the post state based on the response
-  //     if(response.data.message==="Reaction removed"){
-  //          setCount(count-1)
-  //          setSelectedReaction(null); // Set the selected reaction
-  //          setLiked(false);
-  //     }else if(response.data.message==="Reaction updated"){
-  //        setCount(count);
-  //        setSelectedReaction(reaction); // Set the selected reaction
-  //        setLiked(true);
-  //     }else{
-  //        setCount(count+1);
-  //        setSelectedReaction(reaction); // Set the selected reaction
-  //        setLiked(true);
-  //     }
-
-  //     // setSelectedReaction(reaction); // Set the selected reaction
-  //     // setLiked(true); // Mark as liked
-  //     setShowReactions(false); // Hide the reactions popup
-  //   } catch (error) {
-  //     console.error("Error updating reaction:", error);
-  //     // Optionally, show an error message to the user
-  //   }
-  // };
   const handleReactionSelect = async (reaction) => {
     const token = localStorage.getItem("accessToken");
     const id = user?._id;
@@ -212,7 +156,6 @@ const SinglePost = ({ user, post }) => {
 
       // Update the allreactions state based on the response
       if (response.data.message === "Reaction removed") {
-  
         setAllReactions((prevReactions) =>
           prevReactions.filter((r) => r.userId._id !== id)
         );
@@ -220,7 +163,6 @@ const SinglePost = ({ user, post }) => {
         setSelectedReaction(null);
         setLiked(false);
       } else if (response.data.message === "Reaction updated") {
-       
         setAllReactions((prevReactions) =>
           prevReactions.map((r) =>
             r.userId._id === id ? { ...r, type: reaction } : r
@@ -230,7 +172,6 @@ const SinglePost = ({ user, post }) => {
         setSelectedReaction(reaction);
         setLiked(true);
       } else {
-        
         setAllReactions((prevReactions) => [
           ...prevReactions,
           { userId: { _id: id }, type: reaction },
@@ -247,12 +188,11 @@ const SinglePost = ({ user, post }) => {
     }
   };
 
-  
   const timeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
     setShowReactions(true);
-    clearTimeout(timeoutRef.current); 
+    clearTimeout(timeoutRef.current);
   };
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
@@ -277,18 +217,10 @@ const SinglePost = ({ user, post }) => {
     { icon: "😡", label: "angry", color: "#dc2626" },
   ];
 
-  // const reactionIcons = reactionTypes.map((type) => {
-  //   const reaction = reactions.find((r) => r.label === type);
-  //   return reaction ? reaction.icon : null;
-  // });
+  const postDate = new Date(post?.createdAt);
 
-  // console.log(post);
-    // Convert the createdAt timestamp to a Date object
-    const postDate = new Date(post?.createdAt);
-
-    // Calculate the time difference in a human-readable format
-    const timeAgo = formatDistanceToNow(postDate, { addSuffix: true });
-
+  // Calculate the time difference in a human-readable format
+  const timeAgo = formatDistanceToNow(postDate, { addSuffix: true });
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -302,8 +234,10 @@ const SinglePost = ({ user, post }) => {
         <div>
           <div className="flex flex-row gap-1 items-center">
             <p className="font-bold text-gray-800">{post?.authorId?.name}</p>
-            {post?.isProfile? (
-              <p className="text-xs text-gray-500">updated his profile picture</p>
+            {post?.isProfile ? (
+              <p className="text-xs text-gray-500">
+                updated his profile picture
+              </p>
             ) : post?.isCover ? (
               <p className="text-sm text-gray-500">updated his cover image</p>
             ) : null}
@@ -313,7 +247,7 @@ const SinglePost = ({ user, post }) => {
       </div>
 
       <p className="mt-4 text-gray-800">
-        {post?.content?.texts  || "Hey, hello world..."}
+        {post?.content?.texts || " "}
       </p>
 
       <ImageGrid
@@ -324,20 +258,22 @@ const SinglePost = ({ user, post }) => {
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         {/* Like, Comment, Share Section */}
         <div className="flex items-center space-x-2 text-sm text-gray-600">
-        
-        <span className="flex flex-row gap-1">
-          <span>{reactionIcons.map((icon, index) => (
-          <span key={index}>{icon}</span>
-        ))}</span>
-        {!people?.length
-          ? "No reactions"
-          : people.length === 1
-          ? userIds[0]['name']
-          : people.length === 2
-          ? `${userIds[0]['name']} and ${userIds[1]['name']}`
-          : `${userIds.slice(-2).join(" and ")} and ${userIds.length - 2} others`}
-      </span>
-        
+          <span className="flex flex-row gap-1">
+            <span>
+              {reactionIcons.map((icon, index) => (
+                <span key={index}>{icon}</span>
+              ))}
+            </span>
+            {!people?.length
+              ? "No reactions"
+              : people.length === 1
+              ? userIds[0]["name"]
+              : people.length === 2
+              ? `${userIds[0]["name"]} and ${userIds[1]["name"]}`
+              : `${userIds.slice(-2).join(" and ")} and ${
+                  userIds.length - 2
+                } others`}
+          </span>
         </div>
         <div className="flex justify-around p-4 border-t mt-4">
           <div className="relative">
@@ -369,7 +305,6 @@ const SinglePost = ({ user, post }) => {
                     className="hover:scale-x-150 hover:scale-y-150 cursor-pointer transform transition-transform"
                     onClick={() => handleReactionSelect(reaction.label)}
                   >
-              
                     <span style={{ color: reaction.color }}>
                       {" "}
                       {reaction.icon}

@@ -61,6 +61,13 @@ const Navbar = () => {
       dispatch(fetchNotifications(userId));
     });
 
+    socket.on(`post-${userId}`, (notification) => {
+      console.log("post notification = ", notification);
+      notificationSound.current
+        .play()
+        .catch((err) => console.error("Audio play failed:", err));
+      dispatch(fetchNotifications(userId));
+    });
     // Listen for the 'requestAccepted' event
     socket.on(`requestAccepted-${userId}`, (notification) => {
       console.log("Received notification: ", notification);

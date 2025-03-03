@@ -1,11 +1,8 @@
-const User = require('../models/User');
+const User = require("../models/User");
 const Post = require("../models/Post");
 const Reaction = require("../models/Reaction");
-const Notification = require('../models/Notification');
+const Notification = require("../models/Notification");
 const mongoose = require("mongoose");
-
-
-
 
 exports.getUsers = async (req, res) => {
   try {
@@ -16,9 +13,55 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params; // Extract the user ID from the request parameters
+
+    console.log(`Fetching user with ID: ${id}`);
+
+    // Find the user by ID and populate only necessary fields
+    const user = await User.findById(id)
+      .select('name email profilePicture coverImage friends profilePosts') // Only select essential fields
+      .populate('friends', 'name profilePicture') // Populate the friends list with only name and profilePicture
+      .populate({
+        path: 'profilePosts',
+        select: 'content createdAt reactions', // Include reactions in profile posts
+        options: { sort: { createdAt: -1 } }, // Sort by createdAt field in descending order 
+        populate: [
+          {
+            path: 'authorId', // Populate post's author details
+            select: 'name profilePicture',
+          },
+          {
+            path: 'reactions', // Populate reactions for each post
+            select: 'type userId', // Select the reaction type and the userId who reacted
+            populate: {
+              path: 'userId', // Populate the user who reacted
+              select: 'name profilePicture',
+            },
+          },
+        ],
+      })
+      .exec();
+
+    // If user not found, return 404
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Return the user data as a JSON response
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error.message);
+
+    // Return a generic error message for any server issue
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+};
 
 
-// Update user details
+
+
 exports.updateUserDetails = async (req, res) => {
   const { userId } = req.params; // Get the user ID from the URL params
   const { bornIn, currentCity, school, college, description } = req.body; // Get the updated details from the request body
@@ -28,7 +71,7 @@ exports.updateUserDetails = async (req, res) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Update the user's details
@@ -50,26 +93,23 @@ exports.updateUserDetails = async (req, res) => {
   }
 };
 
-
 //profilePicture..
 
 exports.setProfilePicture = async (req, res) => {
   const { userId } = req.params; // Get the user ID from the URL params
   const { profilePicture } = req.body; // Get the updated details from the request body
-  
-  console.log("profile=",req.body)
+
+  console.log("profile=", req.body);
   try {
     // Find the user by ID
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-
-    user.profilePicture = profilePicture || ' ';
+    user.profilePicture = profilePicture || " ";
     console.log(user.profilePicture);
-
 
     const updatedUser = await user.save();
     console.log(updatedUser);
@@ -77,7 +117,6 @@ exports.setProfilePicture = async (req, res) => {
 
     // Return the new profile picture..
     res.status(200).json({ profilePicture: updatedUser.profilePicture });
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -85,38 +124,33 @@ exports.setProfilePicture = async (req, res) => {
 exports.setCoverPicture = async (req, res) => {
   const { userId } = req.params; // Get the user ID from the URL params
   const { coverPicture } = req.body; // Get the updated details from the request body
-  
 
   try {
     // Find the user by ID
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-
-    user.coverImage = coverPicture || ' ';
+    user.coverImage = coverPicture || " ";
 
     const updatedUser = await user.save();
     console.log(updatedUser);
     console.log(updatedUser.coverImage);
 
     // Return the new profile picture..
-    res.status(200).json({ coverImage: updatedUser.coverImage});
-
+    res.status(200).json({ coverImage: updatedUser.coverImage });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-
-exports.postToProfile = async (req, res) => {
+exports.postToProfile = (io) => async (req, res) => {
   try {
     const { postData } = req.body; // Extract post data
-    const {userId} = req.params; // Get user ID from authenticated request
-    
-    
+    const { userId } = req.params; // Get user ID from authenticated request
+
     console.log(postData);
     if (!postData) {
       return res.status(400).json({ message: "Post content cannot be empty." });
@@ -125,55 +159,75 @@ exports.postToProfile = async (req, res) => {
     const newPost = new Post(postData);
 
     await newPost.save();
-    console.log("NewPost = ",newPost);
+    console.log("NewPost = ", newPost);
 
     // Add post to user's profile posts & news feed
     await User.findByIdAndUpdate(userId, {
-      $push: { profilePosts: newPost._id, newsFeed: newPost._id }
+      $push: { profilePosts: newPost._id, newsFeed: newPost._id },
     });
 
-
-  
-    
-      const user = await User.findById(userId).populate('newsFeed');;
-      
-      if (user && user.friends.length > 0) {
-        console.log('i am here..');
-        try {
-            const result = await User.updateMany(
-                { _id: { $in: user.friends } },
-                { $push: { newsFeed: { $each: [newPost._id], $position: 0 } } }
-            );
-            console.log('Update result:', result); // Log the result to see how many documents were modified
-        } catch (err) {
-            console.error('Error updating friends newsFeeds:', err);
-        }
+    const user = await User.findById(userId).populate("newsFeed");
+    //pushing the post to users friends newsfeed...
+    if (user && user.friends.length > 0) {
+      console.log("i am here..");
+      try {
+        const result = await User.updateMany(
+          { _id: { $in: user.friends } },
+          { $push: { newsFeed: { $each: [newPost._id], $position: 0 } } }
+        );
+        console.log("Update result:", result); // Log the result to see how many documents were modified
+      } catch (err) {
+        console.error("Error updating friends newsFeeds:", err);
+      }
     }
 
+    const message = newPost.isProfile
+      ? `${user.name} has updated their profile picture`
+      : newPost.isCover
+      ? `${user.name} has updated their cover photo`
+      : `${user.name} has just shared a new post!`;
 
+      const notification = new Notification({
+        message: message,
+        type: "post",
+        targetId:newPost._id , // 
+        receivers: user?.friends, 
+        senderId: user?._id,
+      });
+      
+      // Save the notification to the database
+      await notification.save();
+      
+      await User.updateMany(
+        { _id: { $in: user?.friends } },  // Find all friends by their IDs
+        { $push: { notifications: notification._id } } // Push the notification ID to their notifications array
+      );
 
-
+      // Emit the notification to each friend individually
+      user?.friends?.forEach((friendId) => {
+        io.emit(`post-${friendId}`, notification);
+      });
+      
 
     console.log(newPost);
-    return res.status(201).json({ message: "Post created successfully!", post: newPost });
+    return res
+      .status(201)
+      .json({ message: "Post created successfully!", post: newPost });
   } catch (error) {
     console.error("Error posting to profile:", error);
     return res.status(500).json({ message: "Internal server error." });
   }
 };
 
-
-
 exports.fetchAllPosts = async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     // Find posts where the authorId is the user, but exclude posts with a pageId (user's page posts)
-    const posts = await Post.find({ authorId: userId, pageId: null }) 
+    const posts = await Post.find({ authorId: userId, pageId: null })
       .populate({
         path: "reactions",
         populate: { path: "userId", select: "-password -refreshToken" }, // Exclude password only
-  
       })
       .populate({
         path: "authorId", // Populate the authorId field
@@ -190,47 +244,43 @@ exports.fetchAllPosts = async (req, res) => {
 exports.fetchNewsFeed = async (req, res) => {
   try {
     const { userId } = req.params;
-    
 
     const user = await User.findById(userId)
-      .select('newsFeed')
+      .select("newsFeed")
       .populate({
-        path: 'newsFeed',
-        model: 'Post',
- 
+        path: "newsFeed",
+        model: "Post",
+
         populate: [
           {
-            path: 'authorId',
-            model: 'User',
-            select: 'name profilePicture' 
+            path: "authorId",
+            model: "User",
+            select: "name profilePicture",
           },
           {
-            path: 'reactions',
-            model: 'Reaction',
-         
+            path: "reactions",
+            model: "Reaction",
+
             populate: {
-              path: 'userId',
-              model: 'User',
-              select: 'name profilePicture'
-            }
-          }
+              path: "userId",
+              model: "User",
+              select: "name profilePicture",
+            },
+          },
         ],
-        options: { sort: { createdAt: -1 } } 
+        options: { sort: { createdAt: -1 } },
       });
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
-    return res.status(200).json( user.newsFeed);
-    
+
+    return res.status(200).json(user.newsFeed);
   } catch (error) {
     console.error("Error fetching user posts:", error);
     res.status(500).json({ message: "Failed to fetch posts" });
   }
 };
-
-
 
 exports.sendFriendRequest = async (req, res) => {
   const { senderId, receiverId } = req.body;
@@ -238,63 +288,71 @@ exports.sendFriendRequest = async (req, res) => {
   console.log(senderId, receiverId);
 
   try {
-
     // Find sender and receiver
-    const sender = await User.findById(senderId).select('+password'); // Include the password field
-    const receiver = await User.findById(receiverId).select('+password'); // Include the password field
+    const sender = await User.findById(senderId).select("+password"); // Include the password field
+    const receiver = await User.findById(receiverId).select("+password"); // Include the password field
 
     if (!sender || !receiver) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
-
-    
 
     // Check if a friend request has already been sent
     if (sender.friendRequestsSent.includes(receiverId)) {
-      return res.status(400).json({ message: 'Friend request already sent' });
+      return res.status(400).json({ message: "Friend request already sent" });
     }
-    
-    if(sender.friendRequestsReceived.includes(receiverId)){
-      return res.status(400).json({ message: `${receiver.name} has already sent Sent you a friend request` });
+
+    if (sender.friendRequestsReceived.includes(receiverId)) {
+      return res
+        .status(400)
+        .json({
+          message: `${receiver.name} has already sent Sent you a friend request`,
+        });
     }
     if (receiver.friendRequestsReceived.includes(senderId)) {
-      return res.status(400).json({ message: `Friend request already received by ${receiver.name}` });
+      return res
+        .status(400)
+        .json({
+          message: `Friend request already received by ${receiver.name}`,
+        });
     }
 
     // Update sender and receiver
     sender.friendRequestsSent.push(receiverId);
     receiver.friendRequestsReceived.push(senderId);
-    
-    console.log('here');
+
+    console.log("here");
     // Save changes to the database
     await sender.save();
     await receiver.save();
 
-    res.status(200).json({ message: 'Friend request sent successfully', sender });
+    res
+      .status(200)
+      .json({ message: "Friend request sent successfully", sender });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: "Server error", error });
   }
 };
-
-
 
 exports.confirmFriendRequest = (io) => async (req, res) => {
   try {
     const { senderId, receiverId } = req.body;
-    console.log('Confirming friend request...');
+    console.log("Confirming friend request...");
 
     // Find both users
     const sender = await User.findById(senderId);
     const receiver = await User.findById(receiverId);
 
     if (!sender || !receiver) {
-      console.log('One or both users not found:', senderId, receiverId);
+      console.log("One or both users not found:", senderId, receiverId);
       return res.status(404).json({ error: "User not found" });
     }
 
     // Check if they are already friends
-    if (sender.friends.includes(receiverId) || receiver.friends.includes(senderId)) {
+    if (
+      sender.friends.includes(receiverId) ||
+      receiver.friends.includes(senderId)
+    ) {
       return res.status(400).json({ error: "They are already friends" });
     }
 
@@ -333,13 +391,19 @@ exports.confirmFriendRequest = (io) => async (req, res) => {
     io.emit(`requestAccepted-${receiverId}`, notification);
 
     // Send response with the notification and updated user info
-    res.status(200).json({ message: "Friend request confirmed", notification, sender, receiver });
+    res
+      .status(200)
+      .json({
+        message: "Friend request confirmed",
+        notification,
+        sender,
+        receiver,
+      });
   } catch (error) {
     console.error("Error confirming friend request:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 exports.fetchAllFriendsById = async (req, res) => {
   try {
@@ -348,7 +412,10 @@ exports.fetchAllFriendsById = async (req, res) => {
     console.log(`Fetching friends for user: ${userId}`);
 
     // Find user and populate friends
-    const user = await User.findById(userId).populate("friends", "name email profilePicture newsFeed");
+    const user = await User.findById(userId).populate(
+      "friends",
+      "name email profilePicture newsFeed"
+    );
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
@@ -361,91 +428,88 @@ exports.fetchAllFriendsById = async (req, res) => {
   }
 };
 
-
 exports.getSentRequests = async (req, res) => {
   try {
-    const {userId} = req.params;
+    const { userId } = req.params;
 
     // Find the user and populate the sent friend requests
-    const user = await User.findById(userId).populate('friendRequestsSent', 'name email profilePicture');
+    const user = await User.findById(userId).populate(
+      "friendRequestsSent",
+      "name email profilePicture"
+    );
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Return the populated list of sent friend requests
     res.status(200).json(user.friendRequestsSent);
-
   } catch (error) {
-    console.error('Error fetching sent friend requests:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error fetching sent friend requests:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-
-
 exports.getAllFriendRequest = async (req, res) => {
   const { userId } = req.params;
-  const user = await User.findById(userId) // Assuming the user ID is passed as a URL parameter
+  const user = await User.findById(userId); // Assuming the user ID is passed as a URL parameter
   // console.log("user ew= ",user)
 
   try {
     // Find the user by ID and populate the `friendRequestsReceived` field with user details
     const user = await User.findById(userId)
       .populate({
-        path: 'friendRequestsReceived',
-        select: 'name profilePicture email', // Select only the fields you need
+        path: "friendRequestsReceived",
+        select: "name profilePicture email", // Select only the fields you need
       })
       .exec();
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Extract the populated friend requests
     const friendRequests = user.friendRequestsReceived;
 
-    res.status(200).json( friendRequests );
+    res.status(200).json(friendRequests);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error', error });
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
-
-
 exports.deleteFriendRequest = async (req, res) => {
-    try {
-        
-        const { requester, rejecter } = req.body; // Get user IDs
-        console.log('Requester:', requester);
+  try {
+    const { requester, rejecter } = req.body; // Get user IDs
+    console.log("Requester:", requester);
 
-        if (!requester || !rejecter) {
-            return res.status(400).json({ message: "Missing required fields" });
-        }
-
-        // Remove requester from rejecter's received requests
-        const rejecterUser = await User.findByIdAndUpdate(
-            rejecter,
-            { $pull: { friendRequestsReceived: requester } },
-            { new: true }
-        );
-
-        // Remove rejecter from requester's sent requests
-        const requesterUser = await User.findByIdAndUpdate(
-            requester,
-            { $pull: { friendRequestsSent: rejecter } },
-            { new: true }
-        );
-
-        if (!rejecterUser || !requesterUser) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        return res.status(200).json({ message: "Friend request deleted successfully" });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Server Error" });
+    if (!requester || !rejecter) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
+
+    // Remove requester from rejecter's received requests
+    const rejecterUser = await User.findByIdAndUpdate(
+      rejecter,
+      { $pull: { friendRequestsReceived: requester } },
+      { new: true }
+    );
+
+    // Remove rejecter from requester's sent requests
+    const requesterUser = await User.findByIdAndUpdate(
+      requester,
+      { $pull: { friendRequestsSent: rejecter } },
+      { new: true }
+    );
+
+    if (!rejecterUser || !requesterUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Friend request deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server Error" });
+  }
 };

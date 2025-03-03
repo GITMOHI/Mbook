@@ -15,13 +15,14 @@ import { uploadImageToCloudinary } from "../utils/cloudinaryUpload";
 import { toast, ToastContainer } from "react-toastify";
 // import PostImages from "../components/PostImages";
 import SinglePost from "./SinglePost";
+import EachPost from "./EachPost";
 
 const ProfilePage = () => {
   const user = useSelector(selectUser); // Get user data from Redux store
 
   const [isFormVisible, setIsFormVisible] = useState(false); // State to control form visibility
   const [profilePicture,   setProfilePicture] = useState(null); // State to control form visibility
-
+  const [coverPicture, setCoverPicture] = useState(null); 
   // State to manage form data
   const [formData, setFormData] = useState({
     bornIn: "",
@@ -289,7 +290,7 @@ const ProfilePage = () => {
           className="absolute bottom-4 right-4 bg-white p-2 rounded-lg cursor-pointer hover:bg-gray-200 flex items-center space-x-2"
         >
           <span className="text-gray-800">📷</span>
-          <span className="text-sm text-gray-800 font-bold">Edit</span>
+          <span className="text-sm text-gray-800 font-bold">Edit now</span>
           <input
             id="cover-picture-upload"
             type="file"
@@ -662,7 +663,7 @@ const ProfilePage = () => {
           <div className="mt-6 space-y-4">
             {user?.profilePosts?.every((post) => post.content) &&
               user.profilePosts.map((post, i) => (
-                <SinglePost key={i} user={user} post={post} />
+                <EachPost key={i} user={user} post={post} />
               ))}
           </div>
         </div>

@@ -201,7 +201,7 @@ const Peoples = () => {
       <div className="flex-1 p-4 md:p-8 overflow-y-auto">
         {/* Friend Requests Section */}
         <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Friend Requests</h2>
+          <h2 className="text-2xl font-bold mb-4">Friend Requestssssssssss</h2>
           {friendRequests && friendRequests.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4">
               {friendRequests.map((friend) => (
@@ -217,11 +217,11 @@ const Peoples = () => {
                     />
                   </div>
                   <div className="p-3">
-                    <h3 className="font-semibold text- text-green-400">
-                      {friend.email}
+                    <h3 className="font-semibold  text-black">
+                     
                     </h3>
                     <p className="text-sm text-gray-500 mb-2">
-                      {friend.mutualFriends} mutual friends
+                      {friend.mutualFriends} mutual friendss
                     </p>
                     <div className="space-y-2">
                       <button
@@ -258,13 +258,13 @@ const Peoples = () => {
                 <div className="aspect-w-1 aspect-h-1">
                   <img
                     src={person?.profilePicture}
-                    alt={person?.name}
+                    alt="loading.."
                     className="w-full h-64 object-cover"
                   />
                 </div>
                 <div className="p-3">
-                  <h3 className="font-semibold text-green-400">
-                    {person.email}
+                  <h3 className="font-semibold text-black">
+                    {person.email}88
                   </h3>
                   <p className="text-sm text-gray-500 mb-2">
                     {person.mutualFriends} mutual friends
