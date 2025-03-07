@@ -35,7 +35,7 @@ import {
   selectUnreadCount,
 } from "../services/Notification/NotificationSlice";
 
-import notificationSound from "../../public/notification.mp3";
+// import notificationSound from "../../public/notification.mp3";
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -47,12 +47,29 @@ const Navbar = () => {
 
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
-  const notificationSound = useRef(new Audio("/notification.mp3"));
+  // const notificationSound = useRef(new Audio("/notification.mp3"));
+  const notificationSound = useRef(new Audio("/notification.mp3")); // Use useRef
+
   const unreadCount = useSelector(selectUnreadCount);
 
   useEffect(() => {
     const userId = user?._id; // Replace with actual logged-in user's ID
 
+    socket.on(`reply-${userId}`, (notification) => {
+      console.log("notification = ", notification);
+      notificationSound.current
+        .play()
+        .catch((err) => console.error("Audio play failed:", err));
+      dispatch(fetchNotifications(userId));
+    });
+
+    socket.on(`Comment-${userId}`, (notification) => {
+      console.log("notification = ", notification);
+      notificationSound.current
+        .play()
+        .catch((err) => console.error("Audio play failed:", err));
+      dispatch(fetchNotifications(userId));
+    });
     socket.on(`notification-${userId}`, (notification) => {
       console.log("notification = ", notification);
       notificationSound.current

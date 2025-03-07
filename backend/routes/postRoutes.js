@@ -1,10 +1,20 @@
 const express = require('express');
 const { authenticateUser } = require('../controllers/authController');
-const { updateReaction } = require('../controllers/postController');
+const { updateReaction, getComments, addComment, addReply } = require('../controllers/postController');
 const router = express.Router();
 
-router.post('/:postId/react',authenticateUser,updateReaction)
+// router.get('/comments/:postId',getComments)
+//       .post('/:postId/react',authenticateUser,updateReaction)
+//       .post('/comments/addComment',authenticateUser,addComment)
+//       .post('/comments/addReply',authenticateUser,addReply)
 
 
 
-module.exports = router;
+module.exports = (io) => {
+      router.get('/comments/:postId',getComments)
+      .post('/:postId/react',authenticateUser,updateReaction)
+      .post('/comments/addComment',authenticateUser,addComment(io))
+      .post('/comments/addReply',authenticateUser,addReply(io))
+
+  return router;
+};

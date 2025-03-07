@@ -54,7 +54,7 @@ const Notification = require('./models/Notification');
 
 app.use('/api/users', userRoutes(io)); 
 app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
+app.use('/api/posts', postRoutes(io));
 app.use('/api/notifications', notificationRoutes);
 
 
