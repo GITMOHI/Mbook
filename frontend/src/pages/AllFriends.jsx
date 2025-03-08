@@ -49,10 +49,7 @@ const AllFriends = () => {
                 <p className="text-sm text-gray-500">15 mutual friends</p>
                 <button
                   className="mt-3 cursor-pointer w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevents navigation when clicking the button
-                    navigate(`/chat/${friend._id}`);
-                  }}
+                  onClick={() => navigate(`/home/profiles/${friend._id}`)}
                 >
                   Visit Profile
                 </button>

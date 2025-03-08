@@ -16,6 +16,7 @@ import {
 } from "../services/Auth/AuthSlice";
 import { toast, ToastContainer } from "react-toastify";
 import socket from "../utils/socket";
+import { Navigate, useNavigate } from "react-router";
 
 const AllPeople = () => {
   const dispatch = useDispatch();
@@ -31,7 +32,8 @@ const AllPeople = () => {
 
   const recReq = useSelector(selectAllReceiveReq) || [];
   const [friendRequests, setFriendRequests] = useState(recReq);
-
+  
+  const navigate = useNavigate();
   console.log(recReq);
   useEffect(() => {
     setFriendRequests(recReq);
@@ -185,8 +187,7 @@ const AllPeople = () => {
       (suggestion) => suggestion._id !== suggestionId
     );
     setSugg(newSuggestions);
-    
-  }
+  };
 
   useEffect(() => {
     friendRequests?.forEach((f) => {
@@ -218,8 +219,8 @@ const AllPeople = () => {
                     />
                   </div>
                   <div className="p-3">
-                    <h3 className="font-semibold text- text-green-400">
-                      {friend.email}
+                    <h3   onClick={() => navigate(`/home/profiles/${friend._id}`)} className="hover:underline cursor-pointer font-semibold text- text-black">
+                      {friend.name}
                     </h3>
                     <p className="text-sm text-gray-500 mb-2">
                       {friend.mutualFriends} mutual friends
@@ -267,8 +268,11 @@ const AllPeople = () => {
                   />
                 </div>
                 <div className="p-3">
-                  <h3 className="font-semibold text-green-400">
-                    {person.email}
+                  <h3
+                    onClick={() => navigate(`/home/profiles/${person._id}`)} // Wrap in an arrow function
+                    className="font-semibold cursor-pointer text-black hover:underline"
+                  >
+                    {person.name}
                   </h3>
                   <p className="text-sm text-gray-500 mb-2">
                     {person.mutualFriends} mutual friends
@@ -290,14 +294,19 @@ const AllPeople = () => {
                         </button>
                       </div>
                     ) : (
-                      <div >
+                      <div>
                         <button
                           className="w-full cursor-pointer bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
                           onClick={() => handleSendFriendRequest(person._id)}
                         >
                           Add Friend
                         </button>
-                        <button onClick={()=>handleRemoveFriendSuggestion(person._id)} className="w-full mt-2 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 cursor-pointer transition-colors">
+                        <button
+                          onClick={() =>
+                            handleRemoveFriendSuggestion(person._id)
+                          }
+                          className="w-full mt-2 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 cursor-pointer transition-colors"
+                        >
                           Remove
                         </button>
                       </div>

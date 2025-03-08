@@ -282,6 +282,96 @@ exports.fetchNewsFeed = async (req, res) => {
   }
 };
 
+// exports.editPost = async(req,res)=>{
+//   const {postId} = req.params;
+//   console.log("edit id : ",postId);
+
+//   const {updatedData} = req.body;
+//   console.log(updatedData)
+// }
+
+exports.editPost = async (req, res) => {
+  const { postId } = req.params;
+  console.log("edit id: ", postId);
+
+  const updatedData = req.body;  // Directly use req.body
+  console.log("Updated Data:", updatedData);
+
+  try {
+    // Find the post by its ID
+    const post = await Post.findById(postId);
+    console.log("Post found:", post);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Update the fields with the new data
+    post.content.texts = updatedData.texts || post.content.texts;
+    post.content.videos = updatedData.videos || post.content.videos;
+    post.content.images = updatedData.images || post.content.images;
+    post.isProfile = updatedData.isProfile !== undefined ? updatedData.isProfile : post.isProfile;
+    post.isCover = updatedData.isCover !== undefined ? updatedData.isCover : post.isCover;
+
+    // Log the updated post object before saving
+    console.log("Updated Post Object:", post);
+
+    // Save the updated post to the database
+    await post.save();
+
+    console.log("Post saved:", post);
+
+    return res.status(200).json(post);
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+exports.editPost = async (req, res) => {
+  const { postId } = req.params;  // Get the postId from the URL params
+  console.log("edit id: ", postId);
+
+  const updatedData = req.body;  // Get updatedData from the request body
+  console.log("Updated Data:", updatedData);  // Log the received data
+
+  try {
+    // Find the post by its ID
+    const post = await Post.findById(postId);
+    console.log("Post found:", post);  // Log the post
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });  // Return error if post is not found
+    }
+
+    // Update the fields with the new data
+    post.content.texts = updatedData.texts || post.content.texts;
+    post.content.videos = updatedData.videos || post.content.videos;
+    post.content.images = updatedData.images || post.content.images;
+    post.isProfile = updatedData.isProfile !== undefined ? updatedData.isProfile : post.isProfile;
+    post.isCover = updatedData.isCover !== undefined ? updatedData.isCover : post.isCover;
+
+    // Log the updated post object before saving
+    console.log("Updated Post Object:", post);
+
+    // Save the updated post to the database
+    await post.save();
+
+    // Populate the authorId field to include user details
+    const populatedPost = await Post.findById(postId).populate('authorId');
+
+    console.log("Post saved and populated:", populatedPost);  // Log the populated post
+
+    return res.status(200).json(populatedPost);  // Return the populated post
+  } catch (error) {
+    console.error("Error updating post:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 exports.sendFriendRequest = async (req, res) => {
   const { senderId, receiverId } = req.body;
 

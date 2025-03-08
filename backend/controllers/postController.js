@@ -144,6 +144,7 @@ exports.addComment = (io) => async (req, res) => {
   const { postId, text } = req.body;
   const commenter = req.user.userId;
 
+
   if (!postId || !text) {
     return res
       .status(400)
@@ -168,7 +169,8 @@ exports.addComment = (io) => async (req, res) => {
 
     const postAuthorId = post.authorId._id;
 
-    // Create a notification for the post author
+    if(postAuthorId!=commenter){
+          // Create a notification for the post author
     const notification = new Notification({
       message: `${populatedComment.commenter.name} commented on your post`,
       type: "comment",
@@ -185,7 +187,11 @@ exports.addComment = (io) => async (req, res) => {
 
     io.emit(`Comment-${postAuthorId}`, notification);
 
+
+    }
+
     res.status(201).json(populatedComment);
+    
   } catch (error) {
     console.error("Error adding comment:", error);
     res.status(500).json({ error: "Failed to add comment" });

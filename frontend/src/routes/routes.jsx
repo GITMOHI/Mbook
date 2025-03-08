@@ -20,38 +20,6 @@ import ProfilePageView from "../pages/ProfilePageView";
 import ProfileRedirect from "../components/ProfileRedirect";
 
 
-// const routes = createBrowserRouter([
-//   {
-//     path: "/",
-//     element:  <PublicRoute><LandingPage /></PublicRoute>
-//   },
-//   {
-//     path: "/home",
-//     element: <ProtectedRoute><Layout /></ProtectedRoute>,
-//     children: [
-//       { path: "", element: <HomePage /> },
-//       { path: "videos", element: <VideoPage /> },
-//       { path: "peoples", element: <Peoples /> },
-//       { path:"profile", element: <ProfilePage />}
-//     ],
-//   },
-//   {
-//     path: "/signup",
-//     element: <PublicRoute><SignUpPage></SignUpPage></PublicRoute>,
-//   },
-//   {
-//     path: "/login",
-//     element:<PublicRoute><LoginPage /></PublicRoute>,
-//   },
-//   {
-//     path: "*",
-//     element: <Navigate to="/" />,
-//   },
-// ]);
-
-// export default routes;
-
-
 
 
 

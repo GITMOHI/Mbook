@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 ;
-import { FaGraduationCap } from "react-icons/fa";
+import { FaGraduationCap, FaMarker, FaUserFriends } from "react-icons/fa";
 import { FaSchool } from "react-icons/fa6";
 import { BiHome, BiMapPin } from "react-icons/bi";
 ;
 // import PostImages from "../components/PostImages";
 import SinglePost from "./SinglePost";
 import { useParams } from "react-router";
-import { fetchUserByIdAsync } from "../services/Auth/AuthSlice";
+import { fetchUserByIdAsync, selectUser } from "../services/Auth/AuthSlice";
 import EachPost from "./EachPost";
 
 const ProfilePageView = () => {
@@ -17,7 +17,8 @@ const ProfilePageView = () => {
    const dispatch = useDispatch();
   
   const [profileUser, setProfileUser] = useState(null); // Store the visited user's data
-
+  const loggedInUser = useSelector(selectUser); // Get the logged-in user's data
+  
   useEffect(() => {
     // Fetch user profile by ID
     const fetchProfile = async () => {
@@ -38,7 +39,10 @@ const ProfilePageView = () => {
     return <p className="text-center text-gray-500">Loading profile...</p>;
   }
    
- 
+  const isFriend = loggedInUser?.friends.some(
+    (friend) => friend._id == profileUser?._id
+  );
+  
   console.log("Profile = ", profileUser);
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -70,6 +74,7 @@ const ProfilePageView = () => {
           <div className="text-center sm:text-left mt-4 sm:mt-0">
             <h1 className="text-3xl font-bold text-gray-800">{profileUser?.name}</h1>
             <p className="text-gray-600">1.5K friends</p>
+            {isFriend ? <div><button className="bg-slate-300 flex flex-row items-center gap-2 text-black font-semibold px-4 py-2 rounded-lg mt-4"><FaUserFriends />Friends</button></div>: <button className="bg-blue-500 text-white px-4 py-2 rounded-lg mt-4">Add Friend</button>}
           </div>
         </div>
 

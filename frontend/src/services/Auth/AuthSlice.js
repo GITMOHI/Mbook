@@ -202,6 +202,36 @@ export const postToProfileAsync = createAsyncThunk(
   }
 );
 
+
+export const editPostAsync = createAsyncThunk(
+  "profile/editPost",
+  async ({postId,updatedData }, { rejectWithValue, getState }) => {
+    try {
+      const token = getState().auth.token; // Assuming token is stored in Redux state
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+      };
+  
+      console.log(updatedData);
+
+
+      const response = await axios.post(
+        `${API_URL}/api/users/posts/edit/${postId}`,
+        updatedData ,
+        config 
+      );
+
+      console.log(response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
+
 // Async thunk to fetch all posts for a user
 export const fetchUserPostsAsync = createAsyncThunk(
   "posts/fetchUserPosts",
@@ -415,26 +445,7 @@ export const deleteFriendRequest = createAsyncThunk(
   }
 );
 
-// Async thunk to remove a friend suggestion
-// export const removeFriendSuggestion = createAsyncThunk(
-//   'auth/removeFriendSuggestion',
-//   async ({suggestionId}, { rejectWithValue }) => {
-//     try {
-//       const token = localStorage.getItem("accessToken");
-//       const config = {   
-//         headers: {
-//           Authorization: `Bearer ${token}`, 
-//         },
-//         data: {suggestionId} 
-//       };
 
-//       const response = await axios.delete(`${API_URL}/api/users/removeFriendSuggestion`, config);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data || "Something went wrong");
-//     }
-//   }
-// );
 
 // Fetch user by ID
 export const fetchUserByIdAsync = createAsyncThunk(
@@ -635,7 +646,25 @@ const authSlice = createSlice({
       .addCase(fetchUserByIdAsync.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+      })
+      .addCase(editPostAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(editPostAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        const index = state.user.profilePosts.findIndex(
+          (post) => post._id === action.payload._id
+        );
+      
+        if (index !== -1) {
+          state.user.profilePosts[index] = action.payload;
+        }
+      })
+      .addCase(editPostAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
       });
+      
   },
 });
 

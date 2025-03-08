@@ -15,6 +15,7 @@ import {
 } from "../services/Auth/AuthSlice";
 import { toast, ToastContainer } from "react-toastify";
 import socket from "../utils/socket";
+import { useNavigate } from "react-router";
 const Suggestions = () => {
 
 
@@ -157,8 +158,7 @@ const Suggestions = () => {
     };
 
 
-
-
+   const navigate = useNavigate();
 
     return (
         <div>
@@ -179,8 +179,8 @@ const Suggestions = () => {
                   />
                 </div>
                 <div className="p-3">
-                  <h3 className="font-semibold text-green-400">
-                    {person.email}
+                  <h3   onClick={() => navigate(`/home/profiles/${person._id}`)} className="font-semibold text-black hover:underline  cursor-pointer">
+                    {person.name}
                   </h3>
                   <p className="text-sm text-gray-500 mb-2">
                     {person.mutualFriends} mutual friends

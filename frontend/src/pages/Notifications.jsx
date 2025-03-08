@@ -18,7 +18,8 @@ const Notifications = () => {
   const handleClick = (notification) => {
     dispatch(markAsRead(notification?._id));
     dispatch(fetchAllFriendRequests(user?._id))
-
+   
+    console.log(notification);
     // Redirect based on notification type
     switch (notification.type) {
       case "post":
@@ -28,7 +29,7 @@ const Notifications = () => {
         navigate(`/home/peoples`);
         break;
       case "requestAccepted":
-        navigate(`/home/peoples/allFriends`);
+        navigate(`/home/profiles/${notification.senderId._id}`);
         break;
       default:
         break;

@@ -14,7 +14,16 @@ import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { addComment, fetchComments } from "../services/comments/commentsSlice";
 import CommentsSection from "../components/CommentsSection";
-import { selectUser } from "../services/Auth/AuthSlice";
+import {
+  fetchUserPostsAsync,
+  postToProfileAsync,
+  selectUser,
+} from "../services/Auth/AuthSlice";
+import { uploadImageToCloudinary } from "../utils/cloudinaryUpload";
+import { toast } from "react-toastify";
+import { FaDeleteLeft, FaTrash } from "react-icons/fa6";
+import { FaEdit } from "react-icons/fa";
+import EditPostModal from "./EditPostModal";
 
 // Image Grid Component
 const ImageGrid = ({ images, onImageClick }) => {
@@ -178,7 +187,9 @@ const EachPost = ({ user, post }) => {
       } else if (response.data.message === "Reaction updated") {
         setReactions((prevReactions) =>
           prevReactions.map((r) =>
-            r.userId?._id === loggedInUser._id ? { ...r, type: reactionType } : r
+            r.userId?._id === loggedInUser._id
+              ? { ...r, type: reactionType }
+              : r
           )
         );
         setUserReaction(reactionType);
@@ -236,12 +247,6 @@ const EachPost = ({ user, post }) => {
     return reaction.icon;
   };
 
-  // Get distinct reaction types for display
-  const getDistinctReactionEmojis = () => {
-    const uniqueTypes = [...new Set(reactions.map((r) => r.type))];
-    return uniqueTypes.map((type) => getEmojiForType(type));
-  };
-
   // Format reactors display text
   const getReactorsDisplayText = () => {
     if (reactions.length === 0) return "No reactions";
@@ -281,10 +286,7 @@ const EachPost = ({ user, post }) => {
   const postId = post?._id;
 
   // Memoize selector to avoid unnecessary re-renders
-  const comments =
-    useSelector((state) => state.comments.commentsByPost[postId]) || [];
-  const [commentText, setCommentText] = useState("");
-  // const [showComments, setShowComments] = useState(false);
+
   const [showComments, setShowComments] = useState(false);
 
   useEffect(() => {
@@ -293,81 +295,176 @@ const EachPost = ({ user, post }) => {
     }
   }, [showComments, dispatch, postId]);
 
-  const handleCommentSubmit = () => {
-    if (commentText.trim() === "") return;
-    dispatch(addComment({ postId, text: commentText, userId: user?._id }));
-    setCommentText(""); // Clear input field
+  // const [editClicked, setEditClicked] = useState(false);
+  const [isPostUploading, setIsPostUploading] = useState(false);
+  const [text, setText] = useState("");
+  const [images, setImages] = useState([]);
+  const [videos, setVideos] = useState([]);
+
+  const [showModal, setShowModal] = useState(false);
+
+  const handleMediaUpload = async (e) => {
+    const files = Array.from(e.target.files); // Convert FileList to Array
+    console.log(files); // Log selected files
+
+    setIsPostUploading(true);
+
+    if (files.length > 0) {
+      try {
+        console.log("Uploading started...");
+
+        // Upload each file to Cloudinary and get URLs
+        const uploadedUrls = await Promise.all(
+          files.map(async (file) => await uploadImageToCloudinary(file))
+        );
+
+        console.log("Uploaded URLs:", uploadedUrls);
+
+        // Separate images and videos based on file type
+        const imageUrls = uploadedUrls.filter((url) =>
+          url.includes("/image/upload/")
+        );
+        const videoUrls = uploadedUrls.filter((url) =>
+          url.includes("/video/upload/")
+        );
+
+        setImages((prev) => [...prev, ...imageUrls]); // Update images state
+        setVideos((prev) => [...prev, ...videoUrls]); // Update videos state
+
+        // Dispatch an action if needed (e.g., updating the user's media collection)
+        // dispatch(
+        //   updateUserMedia({ userId: user._id, images: imageUrls, videos: videoUrls })
+        // ).unwrap();
+
+        toast.success("Media uploaded successfully!");
+      } catch (error) {
+        console.error("Error uploading media:", error);
+        toast.error("Failed to upload media!");
+      } finally {
+        setIsPostUploading(false);
+      }
+    }
   };
 
-  const [replyText, setReplyText] = useState({});
-  const [replyingTo, setReplyingTo] = useState(null);
-  // const [comments, setComments] = useState([]);
+  const handlePostText = (e) => {
+    setText(e.target.value);
+    console.log(text);
+  };
+  // Handle Post Submission
+  const handleSubmit = async () => {
+    const postData = { text, images, videos };
+    console.log("Post Data:", postData);
 
-  const handleReaction = async (commentId) => {};
-
-
-
-  const handleReplySubmit = async (parentId, replyText, parentType) => {
-    if (!replyText) {
-      alert("Reply cannot be empty");
-      return;
-    }
-
-    const token = localStorage.getItem("accessToken");
-
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const newPostData = {
+      texts: text, // Assuming text is already in the correct format
+      images: images,
+      videos: videos,
     };
 
-    try {
-      const response = await axios.post(
-        `${API_URL}/api/posts/comments/addReply`,
-        {
-          parentId,
-          text: replyText,
-          parentType, // Pass the parentType to the API
-        },
-        config
-      );
+    const Data = {
+      content: {
+        texts: text,
+        images: postData.images,
+        videos: postData.videos,
+      },
+      authorId: user?._id,
+    };
 
-      if (response.status === 201) {
-        // Update the UI by refetching comments or replies
-        dispatch(fetchComments(postId)); // Refetch comments to update the UI
-        setReplyText({ ...replyText, [parentId]: "" });
-        setReplyingTo(null);
-      } else {
-        alert("Failed to add reply");
-      }
-    } catch (error) {
-      console.error("Error submitting reply:", error);
-      alert("An error occurred while submitting the reply.");
-    }
+    dispatch(postToProfileAsync({ userId: user._id, postData: Data }))
+      .unwrap()
+      .then(() => dispatch(fetchUserPostsAsync(user._id)));
+
+    console.log("New Post Data with URLs:", newPostData);
+    setShowModal(false); // Close modal
+    setText("");
+    setImages([]);
+    setVideos([]);
   };
+
+  // Handle clicks outside of the modal
+  const modalRef = useRef(null); // Reference for the modal container
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (modalRef.current && !modalRef.current.contains(event.target)) {
+        setShowModal(false);
+      }
+    }
+
+    if (showModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showModal]);
+
+  const [editClicked, setEditClicked] = useState(false);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
       {/* User info */}
-      <div className="flex items-center space-x-3">
+
+      <div className="flex items-center space-x-3 relative">
         <img
           src={authorProfilePic}
           alt={authorName}
           className="w-12 h-12 rounded-full"
         />
-        <div>
-          <div className="flex flex-row gap-1 items-center">
-            <p className="font-bold text-gray-800">{authorName}</p>
-            {post?.isProfile && (
-              <p className="text-xs text-gray-500">
-                updated their profile picture
-              </p>
-            )}
-            {post?.isCover && (
-              <p className="text-sm text-gray-500">updated their cover image</p>
-            )}
+        <div className="flex flex-row justify-between w-full items-center">
+          <div>
+            <div className="flex flex-row gap-1 items-center">
+              <p className="font-bold text-gray-800">{authorName}</p>
+              {post?.isProfile && (
+                <p className="text-xs text-gray-500">
+                  updated their profile picture
+                </p>
+              )}
+              {post?.isCover && (
+                <p className="text-sm text-gray-500">
+                  updated their cover image
+                </p>
+              )}
+            </div>
+            <p className="text-sm text-gray-500">{timeAgo}</p>
           </div>
-          <p className="text-sm text-gray-500">{timeAgo}</p>
+
+          {/* "..." Button with relative positioning */}
+         {loggedInUser?._id == post?.authorId._id? <div className="relative" ref={modalRef}>
+            <p
+              onClick={() => setShowModal(!showModal)}
+              className="text-3xl cursor-pointer hover:bg-slate-100 px-2 rounded-3xl"
+            >
+              ...
+            </p>
+
+            {/* Pop-up Modal positioned below the button */}
+            {showModal && (
+              <div className="absolute top-full z-50 right-0 mt-2 bg-white shadow-lg rounded-xl w-48 p-2 border border-gray-300">
+                <button
+                  onClick={() => {
+                    setEditClicked(true);
+                    setShowModal(false);
+                  }}
+                  className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 hover:bg-gray-200 rounded-md"
+                >
+                  <FaEdit />
+                  Edit Post
+                </button>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                  }}
+                  className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 hover:bg-gray-200 rounded-md"
+                >
+                  <FaTrash />
+                  Move to Trash
+                </button>
+              </div>
+            )}
+          </div>:" "}
         </div>
       </div>
 
@@ -397,6 +494,19 @@ const EachPost = ({ user, post }) => {
           </div>
           <span>{getReactorsDisplayText()}</span>
         </div>
+      )}
+
+      {/* Pop-up Modal */}
+      {editClicked && (
+        <EditPostModal
+          post={post}
+          user={user}
+          editClicked={editClicked}
+          setEditClicked={setEditClicked}
+          handleSubmit={handleSubmit}
+          isPostUploading={isPostUploading}
+          setIsPostUploading={setIsPostUploading}
+        />
       )}
 
       {/* Action buttons */}
@@ -462,9 +572,7 @@ const EachPost = ({ user, post }) => {
       </div>
 
       {/* Comments Section */}
-      {showComments && 
-        <CommentsSection postId={postId}></CommentsSection>
-      } 
+      {showComments && <CommentsSection postId={postId}></CommentsSection>}
 
       {/* Reactors Modal */}
       {showReactorsModal && (
