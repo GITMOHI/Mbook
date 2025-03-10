@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticateUser } = require('../controllers/authController');
-const { updateReaction, getComments, addComment, addReply } = require('../controllers/postController');
+const { updateReaction, getComments, addComment, addReply, deletePost } = require('../controllers/postController');
 const router = express.Router();
 
 // router.get('/comments/:postId',getComments)
@@ -15,6 +15,7 @@ module.exports = (io) => {
       .post('/:postId/react',authenticateUser,updateReaction)
       .post('/comments/addComment',authenticateUser,addComment(io))
       .post('/comments/addReply',authenticateUser,addReply(io))
+      .delete('/deletePost',authenticateUser,deletePost)
 
   return router;
 };

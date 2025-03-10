@@ -202,7 +202,7 @@ const EditPostModal = ({
             <button
               disabled={isPostUploading}
               onClick={ handleEdit}
-              className="w-full cursor-pointer  mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg"
+              className="w-full cursor-pointer mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg"
             >
               Save Changes
             </button>

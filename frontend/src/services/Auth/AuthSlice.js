@@ -461,6 +461,28 @@ export const fetchUserByIdAsync = createAsyncThunk(
 );
 
 
+//delete a post..
+export const deletePostAsync = createAsyncThunk(
+  'auth/deletePostAsync',
+  async (postId, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = {   
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+        data: {postId}
+      }
+
+      const response = await axios.delete(`${API_URL}/api/posts/deletePost`, config);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
+
+
 // Create the slice
 const authSlice = createSlice({
   name: "auth",
@@ -661,6 +683,19 @@ const authSlice = createSlice({
         }
       })
       .addCase(editPostAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
+      .addCase(deletePostAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(deletePostAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user.profilePosts = state.user.profilePosts.filter(
+          (post) => post._id !== action.payload.postId
+        );
+      })
+      .addCase(deletePostAsync.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
       });

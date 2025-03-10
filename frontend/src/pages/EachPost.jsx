@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addComment, fetchComments } from "../services/comments/commentsSlice";
 import CommentsSection from "../components/CommentsSection";
 import {
+  deletePostAsync,
   fetchUserPostsAsync,
   postToProfileAsync,
   selectUser,
@@ -403,6 +404,35 @@ const EachPost = ({ user, post }) => {
 
   const [editClicked, setEditClicked] = useState(false);
 
+  const [throwTrashModal, setThrowTrashModal] = useState(false);
+  const handleThrowTrash = (e) => {
+    e.preventDefault();
+    setThrowTrashModal(false);
+    console.log(postId);
+    dispatch(deletePostAsync(postId)).unwrap()
+    .then((res)=>{
+      console.log(res);
+      if(res.postId){
+         toast.success("Post was moved succesfully!")
+      }else{
+        toast.error("Error moving the post..")
+      }
+    })
+    .catch( (err)=>{
+      toast.error(err)
+    })
+  
+    
+  };
+
+
+
+
+
+
+
+
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
       {/* User info */}
@@ -432,41 +462,78 @@ const EachPost = ({ user, post }) => {
           </div>
 
           {/* "..." Button with relative positioning */}
-         {loggedInUser?._id == post?.authorId._id? <div className="relative" ref={modalRef}>
-            <p
-              onClick={() => setShowModal(!showModal)}
-              className="text-3xl cursor-pointer hover:bg-slate-100 px-2 rounded-3xl"
-            >
-              ...
-            </p>
+          {loggedInUser?._id == post?.authorId._id ? (
+            <div className="relative" ref={modalRef}>
+              <p
+                onClick={() => setShowModal(!showModal)}
+                className="text-3xl cursor-pointer hover:bg-slate-100 px-2 rounded-3xl"
+              >
+                ...
+              </p>
 
-            {/* Pop-up Modal positioned below the button */}
-            {showModal && (
-              <div className="absolute top-full z-50 right-0 mt-2 bg-white shadow-lg rounded-xl w-48 p-2 border border-gray-300">
-                <button
-                  onClick={() => {
-                    setEditClicked(true);
-                    setShowModal(false);
-                  }}
-                  className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 hover:bg-gray-200 rounded-md"
-                >
-                  <FaEdit />
-                  Edit Post
-                </button>
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                  }}
-                  className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 hover:bg-gray-200 rounded-md"
-                >
-                  <FaTrash />
-                  Move to Trash
-                </button>
-              </div>
-            )}
-          </div>:" "}
+              {/* Pop-up Modal positioned below the button */}
+              {showModal && (
+                <div className="absolute top-full z-50 right-0 mt-2 bg-white shadow-lg rounded-xl w-48 p-2 border border-gray-300">
+                  <button
+                    onClick={() => {
+                      setEditClicked(true);
+                      setShowModal(false);
+                    }}
+                    className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 hover:bg-gray-200 rounded-md"
+                  >
+                    <FaEdit />
+                    Edit Post
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowModal(false);
+                      setThrowTrashModal(true);
+                    }}
+                    className="flex cursor-pointer items-center gap-2 w-full px-3 py-2 hover:bg-gray-200 rounded-md"
+                  >
+                    <FaTrash />
+                    Move to Trash
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            " "
+          )}
         </div>
       </div>
+
+      {/* trash modal.. */}
+      {throwTrashModal ? (
+        <div className=" backdrop-blur-sm fixed inset-0 flex items-center justify-center z-50 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-3xl">
+            <h2 className="text-lg font-semibold">Move to your trash?</h2>
+            <p className="text-sm text-gray-600 mt-2">
+              Items in your trash will be automatically deleted after 30 days.
+              You can delete them from your trash earlier by going to activity
+              log in settings.
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-4 py-2 text-gray-700 cursor-pointer border-none bg-gray-200 rounded hover:bg-gray-300"
+                onClick={() => {
+                  setThrowTrashModal(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 cursor-pointer text-white bg-blue-600 rounded hover:bg-blue-700"
+                onClick={handleThrowTrash}
+              >
+                Move
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        " "
+      )}
 
       {/* Post content */}
       <p className="mt-4 text-gray-800">{post?.content?.texts || " "}</p>

@@ -277,3 +277,69 @@ exports.addReply = (io) => async (req, res) => {
     res.status(500).json({ error: "Failed to add reply" });
   }
 };
+
+
+exports.deletePost = async (req, res) => {
+  try {
+    const { postId } = req.body;
+    const userId = req.user.userId;
+   
+    if (!postId) {
+      return res.status(400).json({ message: "Post ID is required." });
+    }
+
+    // Find the post
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found." });
+    }
+
+    if (!post.authorId.equals(userId)) {
+      console.log(post.authorId, " ", userId);
+      return res.status(403).json({postId});
+    }
+    
+
+    await Post.findByIdAndDelete(postId);
+
+    await User.findByIdAndUpdate(userId, {
+      $pull: { profilePosts: postId }
+    });
+
+ 
+    await User.updateMany(
+      { friends: userId },
+      { $pull: { newsFeed: postId } }
+    );
+
+    console.log('updated')
+
+    res.status(200).json({postId});
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
+// exports.deletePost = async (req, res) => { 
+//   try {
+//     const { postId } = req.body;
+//     const userId = req.user.userId;
+
+//     if (!postId) {
+//       return res.status(400).json({ message: "Post ID is required." });
+//     }
+
+//     const deletedPost = await Post.findByIdAndDelete(postId);
+
+//     if (!deletedPost) {
+//       return res.status(404).json({ message: "Post not found." });
+//     }
+
+//     res.status(200).json({ message: "Post deleted successfully.", deletedPost });
+//   } catch (error) {
+//     console.error("Error deleting post:", error);
+//     res.status(500).json({ message: "Internal server error." });
+//   }
+// };
