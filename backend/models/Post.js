@@ -11,6 +11,8 @@ const PostSchema = new mongoose.Schema({
   authorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // User who created the post
   pageId: { type: mongoose.Schema.Types.ObjectId, ref: "Page", default: null }, // If post belongs to a page
   reactions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Reaction" }], // Reactions on the post
+  sharedFrom: { type: mongoose.Schema.Types.ObjectId, ref: "Post", default: null }, // Reference to original post
+  textOnshare:[String],
   createdAt: { type: Date, default: Date.now }, // Timestamp when created
 });
 

@@ -219,12 +219,13 @@ exports.postToProfile = (io) => async (req, res) => {
   }
 };
 
+
 exports.fetchAllPosts = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Find posts where the authorId is the user, but exclude posts with a pageId (user's page posts)
-    const posts = await Post.find({ authorId: userId, pageId: null })
+    // Find posts by the user, excluding posts with a pageId
+    let posts = await Post.find({ authorId: userId, pageId: null })
       .populate({
         path: "reactions",
         populate: { path: "userId", select: "-password -refreshToken" }, // Exclude password only
@@ -235,12 +236,46 @@ exports.fetchAllPosts = async (req, res) => {
       })
       .sort({ createdAt: -1 }); // Sort by newest first
 
+    // Filter posts that have `sharedFrom` and populate them
+    const sharedPosts = posts.filter(post => post.sharedFrom);
+
+    if (sharedPosts.length > 0) {
+      posts = await Post.populate(posts, {
+        path: "sharedFrom",
+        populate: { path: "authorId", select: "-password -refreshToken" }, // Original post's author
+      });
+    }
+
     res.status(200).json({ posts });
   } catch (error) {
     console.error("Error fetching user posts:", error);
     res.status(500).json({ message: "Failed to fetch posts" });
   }
 };
+
+
+// exports.fetchAllPosts = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+
+//     // Find posts where the authorId is the user, but exclude posts with a pageId (user's page posts)
+//     const posts = await Post.find({ authorId: userId, pageId: null })
+//       .populate({
+//         path: "reactions",
+//         populate: { path: "userId", select: "-password -refreshToken" }, // Exclude password only
+//       })
+//       .populate({
+//         path: "authorId", // Populate the authorId field
+//         select: "-password -refreshToken", // Exclude sensitive fields
+//       })
+//       .sort({ createdAt: -1 }); // Sort by newest first
+
+//     res.status(200).json({ posts });
+//   } catch (error) {
+//     console.error("Error fetching user posts:", error);
+//     res.status(500).json({ message: "Failed to fetch posts" });
+//   }
+// };
 exports.fetchNewsFeed = async (req, res) => {
   try {
     const { userId } = req.params;

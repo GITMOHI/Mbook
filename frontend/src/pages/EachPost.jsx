@@ -18,11 +18,13 @@ import {
   deletePostAsync,
   fetchUserPostsAsync,
   postToProfileAsync,
+  selectProfilePosts,
   selectUser,
+  sharePostToFeedAsync,
 } from "../services/Auth/AuthSlice";
 import { uploadImageToCloudinary } from "../utils/cloudinaryUpload";
 import { toast } from "react-toastify";
-import { FaDeleteLeft, FaTrash } from "react-icons/fa6";
+import { FaDeleteLeft, FaNewspaper, FaTrash } from "react-icons/fa6";
 import { FaEdit } from "react-icons/fa";
 import EditPostModal from "./EditPostModal";
 
@@ -268,6 +270,10 @@ const EachPost = ({ user, post }) => {
     addSuffix: true,
   });
 
+  const timeAgoSharedPost = formatDistanceToNow(new Date(post?.sharedFrom?.createdAt || Date.now()), {
+    addSuffix: true,
+  });
+
   // Get author info
   const authorName = post?.authorId?.name || "User";
   const authorProfilePic =
@@ -409,34 +415,82 @@ const EachPost = ({ user, post }) => {
     e.preventDefault();
     setThrowTrashModal(false);
     console.log(postId);
-    dispatch(deletePostAsync(postId)).unwrap()
-    .then((res)=>{
-      console.log(res);
-      if(res.postId){
-         toast.success("Post was moved succesfully!")
-      }else{
-        toast.error("Error moving the post..")
-      }
-    })
-    .catch( (err)=>{
-      toast.error(err)
-    })
-  
-    
+    dispatch(deletePostAsync(postId))
+      .unwrap()
+      .then((res) => {
+        console.log(res);
+        if (res.postId) {
+          toast.success("Post was moved succesfully!");
+        } else {
+          toast.error("Error moving the post..");
+        }
+      })
+      .catch((err) => {
+        toast.error(err);
+      });
   };
 
+  //sharing features....
 
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const [shareFeed, setShareFeed] = useState(false);
+  const [sharedPostText, setsharedPostText] = useState("");
 
+  const handlesharedPostText = (e) => {
+    e.preventDefault();
+    setsharedPostText(e.target.value);
+  };
 
+  const handleShareToFeed = () => {
+    setShowShareOptions(false); // Close popup after clicking
 
+    console.log(sharedPostText);
+    const toBeShared = post?.sharedFrom ? post.sharedFrom._id : post._id;
+    dispatch(sharePostToFeedAsync(toBeShared))
+      .unwrap()
+      .then((res) => {
+        if (res.sharedPost) {
+          // Check if post was shared successfully
+          toast.success("Post was shared to NewsFeed!");
 
+          // Fetch updated user posts after sharing
+          dispatch(fetchUserPostsAsync(user?._id));
+        } else {
+          console.error("Error sharing post:", res);
+          toast.error("Error sharing the post!");
+        }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        toast.error("Error sharing the post!");
+      });
+  };
 
+  // const handleShareToMessenger = () => {
+  //   dispatch(sharePostToMessenger(post._id));
+  //   setShowShareOptions(false); // Close popup after clicking
+  // };
+  const shareModalRef = useRef(null);
+  // useEffect(() => {
+  //   function handleClickOutside(event) {
+  //     if (shareModalRef.current && !shareModalRef.current.contains(event.target)) {
+  //       setShowShareOptions(false);
+  //     }
+  //   }
 
+  //   if (showShareOptions) {
+  //     document.addEventListener("mousedown", handleClickOutside);
+  //   } else {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   }
+
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, [shareModalRef,showShareOptions]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-      {/* User info */}
-
       <div className="flex items-center space-x-3 relative">
         <img
           src={authorProfilePic}
@@ -535,14 +589,35 @@ const EachPost = ({ user, post }) => {
         " "
       )}
 
+     <p>dd</p>
       {/* Post content */}
-      <p className="mt-4 text-gray-800">{post?.content?.texts || " "}</p>
-
+     {!post.sharedFrom ? <p className="mt-4 text-gray-800">{post?.content?.texts || " "}</p>:<p className="mt-4 text-gray-800">{post.textOnShare?post.textOnShare[0]:""}</p>}
+     
       {/* Image gallery */}
       <ImageGrid
         images={post?.content?.images || []}
         onImageClick={handleImageClick}
       />
+
+      {/* User info shared post's owner */}
+      {post.sharedFrom && (
+        <div>
+        <div className="flex mt-8 items-center space-x-3 relative">
+          <img
+            src={post.sharedFrom.authorId?.profilePicture}
+            alt={authorName}
+            className="w-12 h-12 rounded-full"
+          />
+          <div>
+             <p className="font-semibold">{post.sharedFrom.authorId?.name}</p>
+             <p className="text-gray-500">{timeAgoSharedPost}</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <p>{post.sharedFrom.content?.texts?post.sharedFrom.content?.texts:""}</p>
+        </div>
+        </div>
+      )}
 
       {/* Reactions summary - show only if there are reactions */}
       {reactions.length > 0 && (
@@ -624,7 +699,7 @@ const EachPost = ({ user, post }) => {
 
         {/* Comment button */}
         <button
-          className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
+          className="flex cursor-pointer items-center space-x-2 text-gray-600 hover:text-blue-600"
           onClick={() => setShowComments(!showComments)}
         >
           <MessageCircle size={20} />
@@ -632,11 +707,133 @@ const EachPost = ({ user, post }) => {
         </button>
 
         {/* Share button */}
-        <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600">
+        <button
+          onClick={() => setShowShareOptions(!showShareOptions)}
+          className="flex cursor-pointer items-center space-x-2 text-gray-600 hover:text-blue-600"
+        >
           <Share2 size={20} />
           <span>Share</span>
+
+          {/* Share Options Popup */}
+          {showShareOptions && (
+            <div className="relative" ref={shareModalRef}>
+              <div className=" text-gray-600 absolute  z-50 top-4 -right-28 mt-2 bg-white shadow-lg rounded-xl w-56 p-2 border border-gray-300">
+                <button
+                  onClick={() => {
+                    setShareFeed(!shareFeed);
+                  }}
+                  className="block cursor-pointer w-full text-left px-4 py-2 hover:bg-gray-200"
+                >
+                  <p className="cursor-pointer">Share to News Feed</p>
+                </button>
+
+                <button
+                  // onClick={handleShareToMessenger}
+                  className="block cursor-pointer  w-full text-left px-4 py-2 hover:bg-gray-200"
+                >
+                  Share to Messenger
+                </button>
+              </div>
+            </div>
+          )}
         </button>
       </div>
+
+      {/* share pop up... */}
+      {shareFeed && (
+        <div className="fixed inset-0 flex items-center justify-center  bg-opacity-50 backdrop-blur-sm z-50">
+          <div className="bg-white p-4 rounded-lg shadow-xl border-slate-50 border-2   lg:h-[90%]  w-[88%] md:w-[500px] py-9">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl text-center w-full font-bold text-gray-800">
+                Share Post
+              </h2>
+              <button
+                onClick={() => setShareFeed(false)}
+                className="text-gray-500 hover:text-gray-700 hover:cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* User Info */}
+            <div className="flex items-center gap-3 mb-4">
+              <img
+                src={user?.profilePicture ? user.profilePicture : ""}
+                className="w-10 h-10 rounded-full"
+                alt="Profile"
+              />
+              <div>
+                <div className="font-semibold">{user?.name}</div>
+                <select className="text-sm text-gray-600 bg-transparent px-0 py-1">
+                  <option>Public</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Text Area */}
+            <textarea
+              onChange={handlesharedPostText}
+              name="sharedPostText"
+              placeholder="Write something about it.."
+              className="w-full p-3 border-none text-lg focus:ring-0 resize-none min-h-[100px]"
+            />
+
+            <div className="border-1 w-full h-80 gap-3 overflow-x-auto p-2">
+              <div className="flex items-center gap-3 mb-4">
+                <img
+                  src={
+                    post?.authorId?.profilePicture
+                      ? post.authorId.profilePicture
+                      : ""
+                  }
+                  className="w-10 h-10 rounded-full"
+                  alt="Profile"
+                />
+                <p className="font-semibold mb-2">{post?.authorId?.name}</p>
+              </div>
+
+              <div>
+                {post.content?.texts ? (
+                  <p className="mb-3">{post.content.texts}</p>
+                ) : (
+                  " "
+                )}
+                {post?.content?.images?.map((image, index) => (
+                  <div key={`image-${index}`} className="h-full flex-shrink-0">
+                    <img
+                      src={image}
+                      alt={`Post image ${index}`}
+                      className="h-full w-auto object-cover rounded-lg shadow-md"
+                    />
+                  </div>
+                ))}
+
+                {post?.content?.videos?.map((video, index) => (
+                  <div key={`video-${index}`} className="h-full flex-shrink-0">
+                    <video
+                      controls
+                      className="h-full w-auto rounded-lg shadow-md"
+                    >
+                      <source src={video} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Post Button */}
+            <button
+              disabled={isPostUploading}
+              onClick={handleShareToFeed}
+              className="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg"
+            >
+              Share now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Comments Section */}
       {showComments && <CommentsSection postId={postId}></CommentsSection>}

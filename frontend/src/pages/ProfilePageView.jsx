@@ -8,7 +8,7 @@ import { BiHome, BiMapPin } from "react-icons/bi";
 // import PostImages from "../components/PostImages";
 import SinglePost from "./SinglePost";
 import { useParams } from "react-router";
-import { fetchUserByIdAsync, selectUser } from "../services/Auth/AuthSlice";
+import { fetchUserByIdAsync, selectProfilePosts, selectUser } from "../services/Auth/AuthSlice";
 import EachPost from "./EachPost";
 
 const ProfilePageView = () => {
@@ -18,6 +18,7 @@ const ProfilePageView = () => {
   
   const [profileUser, setProfileUser] = useState(null); // Store the visited user's data
   const loggedInUser = useSelector(selectUser); // Get the logged-in user's data
+  const userPost = useSelector(selectProfilePosts)
   
   useEffect(() => {
     // Fetch user profile by ID
@@ -42,6 +43,8 @@ const ProfilePageView = () => {
   const isFriend = loggedInUser?.friends.some(
     (friend) => friend._id == profileUser?._id
   );
+
+ 
   
   console.log("Profile = ", profileUser);
   return (

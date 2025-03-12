@@ -483,6 +483,29 @@ export const deletePostAsync = createAsyncThunk(
 );
 
 
+export const sharePostToFeedAsync  = createAsyncThunk(
+  'auth/sharePostFeedAsync',
+  async (postId, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const config = {   
+        headers: {
+          Authorization: `Bearer ${token}`, // Attach token for authentication
+        },
+        
+      }
+
+      const response = await axios.post(`${API_URL}/api/posts/sharePostToFeed`,{postId}, config);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  }
+);
+
+
+
+
 // Create the slice
 const authSlice = createSlice({
   name: "auth",
@@ -698,6 +721,21 @@ const authSlice = createSlice({
       .addCase(deletePostAsync.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+      })
+      .addCase(sharePostToFeedAsync .pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(sharePostToFeedAsync .fulfilled, (state, action) => {
+        state.status = "succeeded";
+        console.log(action.payload.sharedPost)
+        console.log(state.user.profilePosts.length)
+        state.user.profilePosts.push(action.payload.sharedPost);
+        console.log(state.user.profilePosts.length)
+        state.user.newsFeed.push(action.payload.sharedPost)
+      })
+      .addCase(sharePostToFeedAsync .rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
       });
       
   },
@@ -715,6 +753,7 @@ export const selectAllFriends = (state) => state.auth.user.allFriends;
 export const selectAllSentReq = (state) => state.auth.user.allSentReq;
 export const selectAllReceiveReq = (state) => state.auth.user.allRecReq;
 export const selectNewsFeed = (state) => state.auth.user.newsFeed;
+export const selectProfilePosts = (state) => state.auth.user.profilePosts;
 
 // Export the reducer
 export default authSlice.reducer;

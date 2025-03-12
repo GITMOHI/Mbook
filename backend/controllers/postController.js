@@ -3,6 +3,7 @@ const Reaction = require("../models/Reaction");
 const Comment = require("../models/Comment");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const { default: mongoose } = require("mongoose");
 
 // exports.getComments = async (req, res) => {
 //   const { postId } = req.params;
@@ -321,25 +322,57 @@ exports.deletePost = async (req, res) => {
   }
 };
 
+exports.sharePostFeed = async (req, res) => {
+  try {
+    const { postId } = req.body; // ID of the post to share
+    const userId = req.user.userId; // ID of the user sharing
+    console.log("Post ID:", postId, "--- User ID:", userId);
 
-// exports.deletePost = async (req, res) => { 
-//   try {
-//     const { postId } = req.body;
-//     const userId = req.user.userId;
+    // Validate postId format
+    if (!mongoose.Types.ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid post ID" });
+    }
 
-//     if (!postId) {
-//       return res.status(400).json({ message: "Post ID is required." });
-//     }
+    // Find the original post
+    const originalPost = await Post.findById(postId);
+    if (!originalPost) return res.status(404).json({ message: "Post not found" });
 
-//     const deletedPost = await Post.findByIdAndDelete(postId);
+    console.log("Original Post Found:", originalPost);
 
-//     if (!deletedPost) {
-//       return res.status(404).json({ message: "Post not found." });
-//     }
+    // Create the shared post
+    const sharedPost = new Post({
+      textOnshare:"demo text..",
+      authorId: userId,
+      sharedFrom: postId, // Reference to the original post
+      content: originalPost.content, // Keeping original content
+    });
 
-//     res.status(200).json({ message: "Post deleted successfully.", deletedPost });
-//   } catch (error) {
-//     console.error("Error deleting post:", error);
-//     res.status(500).json({ message: "Internal server error." });
-//   }
-// };
+    await sharedPost.save();
+    console.log("Shared Post Saved:", sharedPost);
+
+    // Populate shared post details
+    let populatedSharedPost = await Post.findById(sharedPost._id)
+      .populate("authorId", "name profilePicture") // Who shared
+
+    // Only populate sharedFrom if it's not null
+    if (populatedSharedPost.sharedFrom) {
+      populatedSharedPost = await populatedSharedPost.populate({
+        path: "sharedFrom",
+        populate: { path: "authorId", select: "name profilePicture" }, // Original author
+      });
+    }
+
+    console.log("Populated Shared Post:", populatedSharedPost);
+
+    // Add to user’s feed and profile
+    await User.findByIdAndUpdate(userId, { 
+      $push: { newsFeed: populatedSharedPost._id, profilePosts: populatedSharedPost._id } 
+    });
+
+    res.status(201).json({ sharedPost: populatedSharedPost });
+
+  } catch (error) {
+    console.error("Error in sharePostFeed:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
