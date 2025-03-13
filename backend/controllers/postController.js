@@ -145,7 +145,6 @@ exports.addComment = (io) => async (req, res) => {
   const { postId, text } = req.body;
   const commenter = req.user.userId;
 
-
   if (!postId || !text) {
     return res
       .status(400)
@@ -170,29 +169,26 @@ exports.addComment = (io) => async (req, res) => {
 
     const postAuthorId = post.authorId._id;
 
-    if(postAuthorId!=commenter){
-          // Create a notification for the post author
-    const notification = new Notification({
-      message: `${populatedComment.commenter.name} commented on your post`,
-      type: "comment",
-      targetId: postId, // ID of the post being commented on
-      senderId: commenter, // ID of the user who commented
-      receivers: [postAuthorId], // ID of the post author
-    });
+    if (postAuthorId != commenter) {
+      // Create a notification for the post author
+      const notification = new Notification({
+        message: `${populatedComment.commenter.name} commented on your post`,
+        type: "comment",
+        targetId: postId, // ID of the post being commented on
+        senderId: commenter, // ID of the user who commented
+        receivers: [postAuthorId], // ID of the post author
+      });
 
-    // Save the notification
-    await notification.save();
-    await User.findByIdAndUpdate(postAuthorId, {
-      $push: { notifications: notification._id },
-    });
+      // Save the notification
+      await notification.save();
+      await User.findByIdAndUpdate(postAuthorId, {
+        $push: { notifications: notification._id },
+      });
 
-    io.emit(`Comment-${postAuthorId}`, notification);
-
-
+      io.emit(`Comment-${postAuthorId}`, notification);
     }
 
     res.status(201).json(populatedComment);
-    
   } catch (error) {
     console.error("Error adding comment:", error);
     res.status(500).json({ error: "Failed to add comment" });
@@ -252,8 +248,8 @@ exports.addReply = (io) => async (req, res) => {
     const repliedToName = repliedToComment.commenter.name; // Access the name field of the commenter
     console.log("The replied-to person's name =", repliedToName);
     // Create a notification for the person , who will receive the reply..
-    
-    if(replierName !== repliedToName){
+
+    if (replierName !== repliedToName) {
       const notification = new Notification({
         message: `${replierName} replied to your comment`,
         type: "reply",
@@ -261,14 +257,14 @@ exports.addReply = (io) => async (req, res) => {
         senderId: commenter,
         receivers: [repliedToComment.commenter._id],
       });
-  
+
       console.log("the notification = ", notification);
       // Save the notification
       await notification.save();
       await User.findByIdAndUpdate(repliedToComment.commenter._id, {
         $push: { notifications: notification._id },
       });
-  
+
       io.emit(`reply-${repliedToComment.commenter._id}`, notification);
     }
 
@@ -279,12 +275,11 @@ exports.addReply = (io) => async (req, res) => {
   }
 };
 
-
 exports.deletePost = async (req, res) => {
   try {
     const { postId } = req.body;
     const userId = req.user.userId;
-   
+
     if (!postId) {
       return res.status(400).json({ message: "Post ID is required." });
     }
@@ -297,36 +292,33 @@ exports.deletePost = async (req, res) => {
 
     if (!post.authorId.equals(userId)) {
       console.log(post.authorId, " ", userId);
-      return res.status(403).json({postId});
+      return res.status(403).json({ postId });
     }
-    
 
     await Post.findByIdAndDelete(postId);
 
     await User.findByIdAndUpdate(userId, {
-      $pull: { profilePosts: postId }
+      $pull: { profilePosts: postId },
     });
 
- 
-    await User.updateMany(
-      { friends: userId },
-      { $pull: { newsFeed: postId } }
-    );
+    await User.updateMany({ friends: userId }, { $pull: { newsFeed: postId } });
 
-    console.log('updated')
+    console.log("updated");
 
-    res.status(200).json({postId});
+    res.status(200).json({ postId });
   } catch (error) {
     console.error("Error deleting post:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 };
 
-exports.sharePostFeed = async (req, res) => {
+exports.sharePostFeed =(io)=> async (req, res) => {
   try {
-    const { postId } = req.body; // ID of the post to share
+    const { postId, sharedPostText } = req.body; // ID of the post to share
     const userId = req.user.userId; // ID of the user sharing
+
     console.log("Post ID:", postId, "--- User ID:", userId);
+    console.log("Text:", sharedPostText);
 
     // Validate postId format
     if (!mongoose.Types.ObjectId.isValid(postId)) {
@@ -335,13 +327,14 @@ exports.sharePostFeed = async (req, res) => {
 
     // Find the original post
     const originalPost = await Post.findById(postId);
-    if (!originalPost) return res.status(404).json({ message: "Post not found" });
+    if (!originalPost)
+      return res.status(404).json({ message: "Post not found" });
 
     console.log("Original Post Found:", originalPost);
 
     // Create the shared post
     const sharedPost = new Post({
-      textOnshare:"demo text..",
+      textOnshare: sharedPostText,
       authorId: userId,
       sharedFrom: postId, // Reference to the original post
       content: originalPost.content, // Keeping original content
@@ -351,10 +344,12 @@ exports.sharePostFeed = async (req, res) => {
     console.log("Shared Post Saved:", sharedPost);
 
     // Populate shared post details
-    let populatedSharedPost = await Post.findById(sharedPost._id)
-      .populate("authorId", "name profilePicture") // Who shared
+    let populatedSharedPost = await Post.findById(sharedPost._id).populate(
+      "authorId",
+      "name profilePicture"
+    ); // Who shared
 
-    // Only populate sharedFrom if it's not null
+    // Populate original post author details
     if (populatedSharedPost.sharedFrom) {
       populatedSharedPost = await populatedSharedPost.populate({
         path: "sharedFrom",
@@ -364,15 +359,112 @@ exports.sharePostFeed = async (req, res) => {
 
     console.log("Populated Shared Post:", populatedSharedPost);
 
-    // Add to user’s feed and profile
-    await User.findByIdAndUpdate(userId, { 
-      $push: { newsFeed: populatedSharedPost._id, profilePosts: populatedSharedPost._id } 
+    // Push shared post to user's own feed and profile
+    await User.findByIdAndUpdate(userId, {
+      $push: {
+        newsFeed: populatedSharedPost._id,
+        profilePosts: populatedSharedPost._id,
+      },
     });
 
-    res.status(201).json({ sharedPost: populatedSharedPost });
 
+    const user = await User.findById(userId).select("friends name profilePicture");
+    const friendIds = user.friends || [];
+
+  
+    if (friendIds.length > 0) {
+      await User.updateMany(
+        { _id: { $in: friendIds } }, // Update all friends
+        { $push: { newsFeed: populatedSharedPost._id } }
+      );
+      console.log("Shared post pushed to friends' newsFeed");
+    }
+
+
+    const message =`${user?.name} has just shared new post!`;
+    console.log(message);
+
+    const notification = new Notification({
+      message: message,
+      type: "post",
+      targetId: sharedPost._id, //
+      receivers: user?.friends,
+      senderId: user?._id,
+    });
+
+    // Save the notification to the database
+    await notification.save();
+
+    await User.updateMany(
+      { _id: { $in: user?.friends } }, // Find all friends by their IDs
+      { $push: { notifications: notification._id } } // Push the notification ID to their notifications array
+    );
+
+    // Emit the notification to each friend individually
+    user?.friends?.forEach((friendId) => {
+      io.emit(`sharedPost-${friendId}`, notification);
+    });
+
+
+    res.status(201).json({ sharedPost: populatedSharedPost });
   } catch (error) {
     console.error("Error in sharePostFeed:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// exports.sharePostFeed = async (req, res) => {
+//   try {
+//     const { postId,sharedPostText } = req.body; // ID of the post to share
+//     const userId = req.user.userId; // ID of the user sharing
+//     console.log("Post ID:", postId, "--- User ID:", userId);
+//     console.log("text : ",sharedPostText);
+
+//     // Validate postId format
+//     if (!mongoose.Types.ObjectId.isValid(postId)) {
+//       return res.status(400).json({ message: "Invalid post ID" });
+//     }
+
+//     // Find the original post
+//     const originalPost = await Post.findById(postId);
+//     if (!originalPost) return res.status(404).json({ message: "Post not found" });
+
+//     console.log("Original Post Found:", originalPost);
+
+//     // Create the shared post
+//     const sharedPost = new Post({
+//       textOnshare:sharedPostText,
+//       authorId: userId,
+//       sharedFrom: postId, // Reference to the original post
+//       content: originalPost.content, // Keeping original content
+//     });
+
+//     await sharedPost.save();
+//     console.log("Shared Post Saved:", sharedPost);
+
+//     // Populate shared post details
+//     let populatedSharedPost = await Post.findById(sharedPost._id)
+//       .populate("authorId", "name profilePicture") // Who shared
+
+//     // Only populate sharedFrom if it's not null
+//     if (populatedSharedPost.sharedFrom) {
+//       populatedSharedPost = await populatedSharedPost.populate({
+//         path: "sharedFrom",
+//         populate: { path: "authorId", select: "name profilePicture" }, // Original author
+//       });
+//     }
+
+//     console.log("Populated Shared Post:", populatedSharedPost);
+
+//     // Add to user’s feed and profile
+//     await User.findByIdAndUpdate(userId, {
+//       $push: { newsFeed: populatedSharedPost._id, profilePosts: populatedSharedPost._id }
+//     });
+
+//     res.status(201).json({ sharedPost: populatedSharedPost });
+
+//   } catch (error) {
+//     console.error("Error in sharePostFeed:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };

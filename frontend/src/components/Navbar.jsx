@@ -62,6 +62,13 @@ const Navbar = () => {
         .catch((err) => console.error("Audio play failed:", err));
       dispatch(fetchNotifications(userId));
     });
+    socket.on(`sharedPost-${userId}`, (notification) => {
+      console.log("notification = ", notification);
+      notificationSound.current
+        .play()
+        .catch((err) => console.error("Audio play failed:", err));
+      dispatch(fetchNotifications(userId));
+    });
 
     socket.on(`Comment-${userId}`, (notification) => {
       console.log("notification = ", notification);

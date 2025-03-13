@@ -485,7 +485,7 @@ export const deletePostAsync = createAsyncThunk(
 
 export const sharePostToFeedAsync  = createAsyncThunk(
   'auth/sharePostFeedAsync',
-  async (postId, { rejectWithValue }) => {
+  async ({postId,sharedPostText}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("accessToken");
       const config = {   
@@ -494,8 +494,10 @@ export const sharePostToFeedAsync  = createAsyncThunk(
         },
         
       }
-
-      const response = await axios.post(`${API_URL}/api/posts/sharePostToFeed`,{postId}, config);
+      
+      console.log(postId);
+      
+      const response = await axios.post(`${API_URL}/api/posts/sharePostToFeed`,{postId,sharedPostText}, config);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Something went wrong");

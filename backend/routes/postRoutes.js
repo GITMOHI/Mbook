@@ -12,7 +12,7 @@ const router = express.Router();
 
 module.exports = (io) => {
       router.get('/comments/:postId',getComments)
-      .post('/sharePostToFeed',authenticateUser,sharePostFeed)
+      .post('/sharePostToFeed',authenticateUser,sharePostFeed(io))
       .post('/:postId/react',authenticateUser,updateReaction)
       .post('/comments/addComment',authenticateUser,addComment(io))
       .post('/comments/addReply',authenticateUser,addReply(io))

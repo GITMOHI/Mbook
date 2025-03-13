@@ -181,11 +181,7 @@ exports.postToProfile = (io) => async (req, res) => {
       }
     }
 
-    const message = newPost.isProfile
-      ? `${user.name} has updated their profile picture`
-      : newPost.isCover
-      ? `${user.name} has updated their cover photo`
-      : `${user.name} has just shared a new post!`;
+    const message = `${user.name} has just shared a new post!`;
 
       const notification = new Notification({
         message: message,
@@ -276,6 +272,8 @@ exports.fetchAllPosts = async (req, res) => {
 //     res.status(500).json({ message: "Failed to fetch posts" });
 //   }
 // };
+
+
 exports.fetchNewsFeed = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -285,25 +283,32 @@ exports.fetchNewsFeed = async (req, res) => {
       .populate({
         path: "newsFeed",
         model: "Post",
-
         populate: [
           {
-            path: "authorId",
+            path: "authorId", // Who created the post (or shared it)
             model: "User",
             select: "name profilePicture",
           },
           {
             path: "reactions",
             model: "Reaction",
-
             populate: {
               path: "userId",
               model: "User",
               select: "name profilePicture",
             },
           },
+          {
+            path: "sharedFrom", // If it's a shared post, get the original post
+            model: "Post",
+            populate: {
+              path: "authorId", // Original author of the shared post
+              model: "User",
+              select: "name profilePicture",
+            },
+          },
         ],
-        options: { sort: { createdAt: -1 } },
+        options: { sort: { createdAt: -1 } }, // Sort by newest first
       });
 
     if (!user) {
@@ -312,18 +317,54 @@ exports.fetchNewsFeed = async (req, res) => {
 
     return res.status(200).json(user.newsFeed);
   } catch (error) {
-    console.error("Error fetching user posts:", error);
+    console.error("Error fetching news feed:", error);
     res.status(500).json({ message: "Failed to fetch posts" });
   }
 };
 
-// exports.editPost = async(req,res)=>{
-//   const {postId} = req.params;
-//   console.log("edit id : ",postId);
 
-//   const {updatedData} = req.body;
-//   console.log(updatedData)
-// }
+// exports.fetchNewsFeed = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+
+//     const user = await User.findById(userId)
+//       .select("newsFeed")
+//       .populate({
+//         path: "newsFeed",
+//         model: "Post",
+
+//         populate: [
+//           {
+//             path: "authorId",
+//             model: "User",
+//             select: "name profilePicture",
+//           },
+//           {
+//             path: "reactions",
+//             model: "Reaction",
+
+//             populate: {
+//               path: "userId",
+//               model: "User",
+//               select: "name profilePicture",
+//             },
+//           },
+//         ],
+//         options: { sort: { createdAt: -1 } },
+//       });
+
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+    
+
+//     return res.status(200).json(user.newsFeed);
+//   } catch (error) {
+//     console.error("Error fetching user posts:", error);
+//     res.status(500).json({ message: "Failed to fetch posts" });
+//   }
+// };
+
 
 exports.editPost = async (req, res) => {
   const { postId } = req.params;

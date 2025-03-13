@@ -27,6 +27,7 @@ import { toast } from "react-toastify";
 import { FaDeleteLeft, FaNewspaper, FaTrash } from "react-icons/fa6";
 import { FaEdit } from "react-icons/fa";
 import EditPostModal from "./EditPostModal";
+import { useNavigate } from "react-router";
 
 // Image Grid Component
 const ImageGrid = ({ images, onImageClick }) => {
@@ -270,9 +271,12 @@ const EachPost = ({ user, post }) => {
     addSuffix: true,
   });
 
-  const timeAgoSharedPost = formatDistanceToNow(new Date(post?.sharedFrom?.createdAt || Date.now()), {
-    addSuffix: true,
-  });
+  const timeAgoSharedPost = formatDistanceToNow(
+    new Date(post?.sharedFrom?.createdAt || Date.now()),
+    {
+      addSuffix: true,
+    }
+  );
 
   // Get author info
   const authorName = post?.authorId?.name || "User";
@@ -446,7 +450,8 @@ const EachPost = ({ user, post }) => {
 
     console.log(sharedPostText);
     const toBeShared = post?.sharedFrom ? post.sharedFrom._id : post._id;
-    dispatch(sharePostToFeedAsync(toBeShared))
+    console.log(toBeShared);
+    dispatch(sharePostToFeedAsync({ postId: toBeShared, sharedPostText }))
       .unwrap()
       .then((res) => {
         if (res.sharedPost) {
@@ -488,6 +493,8 @@ const EachPost = ({ user, post }) => {
   //     document.removeEventListener("mousedown", handleClickOutside);
   //   };
   // }, [shareModalRef,showShareOptions]);
+
+  const navigate = useNavigate();
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -589,10 +596,15 @@ const EachPost = ({ user, post }) => {
         " "
       )}
 
-     <p>dd</p>
       {/* Post content */}
-     {!post.sharedFrom ? <p className="mt-4 text-gray-800">{post?.content?.texts || " "}</p>:<p className="mt-4 text-gray-800">{post.textOnShare?post.textOnShare[0]:""}</p>}
-     
+      {!post.sharedFrom ? (
+        <p className="mt-4 text-gray-800">{post?.content?.texts || " "}</p>
+      ) : (
+        <p className="mt-4 mb-4 text-gray-800">
+          {post.textOnshare ? post.textOnshare[0] : ""}
+        </p>
+      )}
+
       {/* Image gallery */}
       <ImageGrid
         images={post?.content?.images || []}
@@ -602,20 +614,24 @@ const EachPost = ({ user, post }) => {
       {/* User info shared post's owner */}
       {post.sharedFrom && (
         <div>
-        <div className="flex mt-8 items-center space-x-3 relative">
-          <img
-            src={post.sharedFrom.authorId?.profilePicture}
-            alt={authorName}
-            className="w-12 h-12 rounded-full"
-          />
-          <div>
-             <p className="font-semibold">{post.sharedFrom.authorId?.name}</p>
-             <p className="text-gray-500">{timeAgoSharedPost}</p>
+          <div className="flex mt-8 items-center space-x-3 relative">
+            <img
+              src={post.sharedFrom.authorId?.profilePicture}
+              alt={authorName}
+              className="w-12 h-12 rounded-full"
+            />
+            <div>
+              <p className="font-semibold">{post.sharedFrom.authorId?.name}</p>
+              <p className="text-gray-500">{timeAgoSharedPost}</p>
+            </div>
           </div>
-        </div>
-        <div className="mt-4">
-          <p>{post.sharedFrom.content?.texts?post.sharedFrom.content?.texts:""}</p>
-        </div>
+          <div className="mt-4">
+            <p>
+              {post.sharedFrom.content?.texts
+                ? post.sharedFrom.content?.texts
+                : ""}
+            </p>
+          </div>
         </div>
       )}
 
@@ -939,7 +955,7 @@ const EachPost = ({ user, post }) => {
           <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex md:flex-row flex-col">
             {/* Close button */}
             <button
-              className="absolute top-4 right-4 p-2 bg-gray-800 rounded-full text-white hover:bg-gray-700 z-50"
+              className="absolute cursor-pointer top-4 right-4 p-2 bg-gray-800 rounded-full text-white hover:bg-gray-700 z-50"
               onClick={() => setShowImageModal(false)}
             >
               <X size={20} />
@@ -981,7 +997,18 @@ const EachPost = ({ user, post }) => {
                     className="w-10 h-10 rounded-full"
                   />
                   <div>
-                    <p className="font-semibold">{authorName}</p>
+                    <p
+                      onClick={() => {
+                        const path =
+                          user?._id === post.authorId._id
+                            ? "/home/profile"
+                            : `/home/profiles/${post.authorId._id}`;
+                        navigate(path);
+                      }}
+                      className="font-semibold hover:underline cursor-pointer"
+                    >
+                      {authorName}
+                    </p>
                     <p className="text-xs text-gray-500">{timeAgo}</p>
                   </div>
                 </div>
@@ -1085,43 +1112,27 @@ const EachPost = ({ user, post }) => {
                   onClick={() => setShowComments(!showComments)}
                 >
                   <MessageCircle size={20} />
-                  <span>Comment</span>
+                  <span className="cursor-pointer">Comment</span>
                 </button>
 
                 {/* Share button */}
-                <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600">
+                {/* <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-600"
+                   onClick={() => setShowShareOptions(!showShareOptions)}
+                   >
                   <Share2 size={20} />
-                  <span>Share</span>
-                </button>
+                  <span className="cursor-pointer">Share</span>
+                </button> */}
               </div>
 
               {/* Comments section */}
               <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-4">
-                  {/* Sample comment */}
-                  <div className="flex space-x-2">
-                    <img
-                      src={user?.profilePicture || "/default-avatar.png"}
-                      alt="Commenter"
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <div className="flex-1">
-                      <div className="bg-gray-100 rounded-lg p-2">
-                        <p className="font-semibold text-sm">User Name</p>
-                        <p className="text-sm">This is a sample comment.</p>
-                      </div>
-                      <div className="flex space-x-2 mt-1 text-xs text-gray-500">
-                        <button className="hover:underline">Like</button>
-                        <button className="hover:underline">Reply</button>
-                        <span>1h</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                {showComments && (
+                  <CommentsSection postId={postId}></CommentsSection>
+                )}
               </div>
 
               {/* Comment input */}
-              <div className="p-4 border-t">
+              {/* <div className="p-4 border-t">
                 <div className="flex items-center space-x-2">
                   <img
                     src={user?.profilePicture || "/default-avatar.png"}
@@ -1139,7 +1150,7 @@ const EachPost = ({ user, post }) => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         )}
