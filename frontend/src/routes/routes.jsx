@@ -18,6 +18,7 @@ import Suggestions from "../pages/Suggestions";
 import AllFriends from "../pages/AllFriends";
 import ProfilePageView from "../pages/ProfilePageView";
 import ProfileRedirect from "../components/ProfileRedirect";
+import MessengerHome from "../pages/messenger/components/MessengerHome";
 
 
 
@@ -47,11 +48,16 @@ const routes = createBrowserRouter([
         ]
       
       },
+      {
+        path:"messenger",
+        element:<MessengerHome></MessengerHome>
+      },
       { path:"profile", element: <ProfilePage />},
       {
         path: "profiles/:id",
         element: <ProfilePageView></ProfilePageView>
       },
+
     ],
   },
   {

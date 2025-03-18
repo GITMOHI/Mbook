@@ -17,7 +17,7 @@ import { FaUser, FaUsers, FaStore, FaTv, FaClock, FaBookmark, FaFlag, FaCalendar
 const Layout = () => {
     const location = useLocation();
     const isProfilePage = location.pathname === "/home/profile" || location.pathname.startsWith("/home/profiles/");// Check if on Profile Page
-    const isPeoplePage = location.pathname === "/home/peoples" || location.pathname === "/home/peoples/frndReq"  || location.pathname === "/home/peoples/frndSugg"  || location.pathname === "/home/peoples/allFriends";
+    const isPeoplePage = location.pathname === "/home/peoples" || location.pathname === "/home/peoples/frndReq"  || location.pathname === "/home/peoples/frndSugg"  || location.pathname === "/home/peoples/allFriends" || location.pathname === "/home/messenger";
   
 
     return (
