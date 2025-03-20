@@ -679,3 +679,31 @@ exports.deleteFriendRequest = async (req, res) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+
+
+
+exports.searchFriend = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ message: "Query parameter is required" });
+    }
+
+
+    console.log("q = ",query);
+    // Find users matching the query (case-insensitive)
+    const users = await User.find({
+      $or: [
+        { name: { $regex: query, $options: "i" } },  // Search by name (case-insensitive)
+        { email: { $regex: query, $options: "i" } }  // Search by email (case-insensitive)
+      ]
+    }).select("name email profilePicture"); // Limit the fields returned
+
+    // Return the users if found
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error searching users:", error.message); // Log the error message
+    res.status(500).json({ message: "Internal Server Error", error: error.message }); // Return more detailed error info
+  }
+};

@@ -15,6 +15,7 @@ const {
   fetchNewsFeed,
   getUserById,
   editPost,
+  searchFriend,
 
 } = require("../controllers/userController");
 const { authenticateUser } = require("../controllers/authController");
@@ -36,6 +37,7 @@ module.exports = (io) => {
     .get("/:userId/allFriendRequests", authenticateUser, getAllFriendRequest)
     .get("/:userId/fetchAllFriends", authenticateUser, fetchAllFriendsById)
     .get("/", authenticateUser, getUsers)
+    .get("/searchUser",searchFriend)
     .get("/:id",getUserById)
     .post("/posts/edit/:postId",editPost)
     .get("/posts/:userId", fetchAllPosts)
